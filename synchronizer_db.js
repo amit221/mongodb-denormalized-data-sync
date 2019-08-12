@@ -1,5 +1,5 @@
 const Joi = require("@hapi/joi");
-const MongoClient = require("mongodb").MongoClient;
+const {MongoClient, ObjectId} = require("mongodb");
 const mongodbDenormalizedDataSyncDbName = "mongodb_denormalized_data_sync_db";
 
 let client, db, dependenciesCollection, resumeTokenCollection;
@@ -37,7 +37,11 @@ exports.validate = function (payload) {
 };
 
 exports.addDependency = function (payload) {
-	return dependenciesCollection.insertOne(payload);
+	const query = {};
+	if (id !== "new") {
+		query._id = new ObjectId;
+	}
+	return dependenciesCollection.updateOne(payload, {upsert: true});
 };
 exports.getDependencies = function () {
 	return dependenciesCollection.find().toArray();
@@ -50,15 +54,6 @@ exports.addResumeToken = function (payload) {
 exports.getResumeToken = function () {
 	return resumeTokenCollection.findOne();
 };
-
-
-
-
-
-
-
-
-
 
 
 process.stdin.resume();//so the program will not close instantly

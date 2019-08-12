@@ -66,7 +66,7 @@ const checkConflict = function (dependency) {
 	if (!dependenciesMap[dependency.db_name] ||
 		!dependenciesMap[dependency.db_name][dependency.dependent_collection]
 	) {
-		return ;
+		return;
 	}
 	dependency.dependent_fields.forEach(field => {
 		if (dependenciesMap[dependency.db_name][dependency.dependent_collection].dependent_fields.includes(field)) {
@@ -136,5 +136,6 @@ exports.addDependency = async function (body) {
 		return;
 	}
 	checkConflict(value);
+	return synchronizerModel.addDependency(id, value);
 	
 };
