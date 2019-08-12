@@ -1,0 +1,33 @@
+{
+  "name": "mongodb-denormalized-data-sync",
+  "version": "0.0.0",
+  "description": "responsible of synchronizing duplicate data between collections",
+  "main": "interface.js",
+  "dependencies": {
+    "@hapi/joi": "^15.1.0",
+    "body-parser": "^1.19.0",
+    "dotenv": "^4.0.0",
+    "express": "^4.17.1",
+    "helmet": "^3.20.0",
+    "method-override": "^3.0.0",
+    "mongodb": "^3.2.7",
+    "morgan": "^1.9.1"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amit221/mongodb-denormalized-data-sync.git"
+  },
+  "keywords": [
+    "mongodb",
+    "denormalized",
+    "synchronizing",
+    "collection"
+  ],
+  "author": "Amit Wagner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/amit221/mongodb-denormalized-data-sync/issues"
+  },
+  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme"
+}
