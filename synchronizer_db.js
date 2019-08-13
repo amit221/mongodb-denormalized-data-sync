@@ -1,6 +1,5 @@
 const Joi = require("@hapi/joi");
 const {MongoClient, ObjectId} = require("mongodb");
-const mongodbDenormalizedDataSyncDbName = "mongodb_denormalized_data_sync_db";
 
 let client, db, dependenciesCollection, resumeTokenCollection;
 
@@ -20,7 +19,7 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 	}
 	connectionOptions.useNewUrlParser = true;
 	client = await MongoClient.connect(connectionString, connectionOptions);
-	db = client.db(mongodbDenormalizedDataSyncDbName);
+	db = client.db(process.env.MONGODB_DATA_SYNC_DB);
 	dependenciesCollection = db.collection('dependencies');
 	await dependenciesCollection.createIndex({
 		db_name: 1,
@@ -35,13 +34,13 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 exports.validate = function (payload) {
 	return Joi.validate(payload, schema, {abortEarly: false});
 };
+exports.removeDependency = function (id) {
+	return dependenciesCollection.deleteOne({_id: new ObjectId(id)});
+};
 
 exports.addDependency = function (payload) {
-	const query = {};
-	if (id !== "new") {
-		query._id = new ObjectId;
-	}
-	return dependenciesCollection.updateOne(payload, {upsert: true});
+	
+	return dependenciesCollection.insertOne(payload);
 };
 exports.getDependencies = function () {
 	return dependenciesCollection.find().toArray();
@@ -56,7 +55,7 @@ exports.getResumeToken = function () {
 };
 
 
-process.stdin.resume();//so the program will not close instantly
+process.stdin.resume();
 const exitHandler = async (options) => {
 	if (client) {
 		await client.close().catch(console.error);

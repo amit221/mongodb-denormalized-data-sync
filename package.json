@@ -1,5 +1,5 @@
 {
-  "name": "mongodb-denormalized-data-sync",
+  "name": "mongodb-data-sync",
   "version": "0.0.0",
   "description": "responsible of synchronizing duplicate data between collections",
   "main": "interface.js",

@@ -1,10 +1,11 @@
 require("dotenv").config();
+process.env.PORT = process.env.PORT || 6500;
+process.env.MONGODB_DATA_SYNC_DB = process.env.MONGODB_DATA_SYNC_DB || "mongodb_data_sync_db";
+
 const http = require("http");
 const synchronizer = require('./synchronizer');
-
 const express = require("express");
 const morgan = require("morgan");
-
 const helmet = require("helmet");
 const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
@@ -21,7 +22,7 @@ app.use(methodOverride());
 app.use(helmet());
 
 
-http.createServer(app).listen(process.env.PORT || 6500);
+http.createServer(app).listen(process.env.PORT);
 
 const addDependency = async function (req, res, next) {
 	await synchronizer.addDependency(req.body);
@@ -31,7 +32,7 @@ const removeDependency = function (req, res, next) {
 };
 
 synchronizer
-	.start((process.env.DBS_LIST && process.env.DBS_LIST.split(",")) || [])
+	.start()
 	.then(() => {
 		app.post("dependency", addDependency);
 		app.delete("dependency", removeDependency);
