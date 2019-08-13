@@ -37,26 +37,6 @@ const _addDependency = function ({dependentCollection, refCollection, localField
 		throw new Error("fieldsToSync needs to has at least 1 field needed to be synced");
 	}
 	
-	Object.keys(fieldsToSync).forEach(key => {
-		if (Array.isArray(fieldsToSync[key])) {
-			let hasName = false;
-			fieldsToSync[key].forEach(value => {
-				if (typeof value !== 'string') {
-					throw new Error("fieldsToSync - all array values need to be a string");
-				}
-				if (value[0] === "$") {
-					hasName = true;
-				}
-			});
-			
-			if (hasName === false) {
-				throw new Error("fieldsToSync - ref field name must start with $ sign");
-			}
-		} else if (fieldsToSync[key][0] !== "$") {
-			throw new Error("fieldsToSync - ref field name must start with $ sign");
-		}
-	});
-	
 	return {
 		dependentCollection,
 		refCollection,
