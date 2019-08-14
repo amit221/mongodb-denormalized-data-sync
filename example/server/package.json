@@ -1,0 +1,12 @@
+{
+  "name": "mongodb-data-sync-example",
+  "version": "1.0.0",
+  "description": "mongodb-data-sync example example",
+  "dependencies": {
+    "mongodb-data-sync": "^0.0.4"
+  },
+  "scripts": {
+    "start": "",
+    "start-windows": "npm install && start npm run server && cd ../remove_app && start node index.js "
+  }
+}
