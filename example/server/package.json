@@ -1,12 +1,15 @@
 {
-  "name": "mongodb-data-sync-example",
+  "name": "server",
   "version": "1.0.0",
-  "description": "mongodb-data-sync example example",
   "dependencies": {
     "mongodb-data-sync": "^0.0.4"
   },
   "scripts": {
-    "start": "",
-    "start-windows": "npm install && start npm run server && cd ../remove_app && start node index.js "
+    "start-win": "cd ./node_modules/mongodb-data-sync && npm run server",
+    "start-linux": "cd ./node_modules/mongodb-data-sync ; npm run server",
+    "start-dev": "nodemon ../synchronizer_server.js"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.1"
   }
 }

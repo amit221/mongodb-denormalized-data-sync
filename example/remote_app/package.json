@@ -1,0 +1,15 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "dependencies": {
+    "mongodb-data-sync": "^0.0.4"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "start-dev": "cross-env NODE_ENV=dev nodemon index.js"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "nodemon": "^1.19.1"
+  }
+}
