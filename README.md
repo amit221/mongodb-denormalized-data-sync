@@ -12,8 +12,8 @@ mongodb-data-sync was designed to do all the updates and synchronization with mi
 <h2>Architecture</h2>
 mongodb-data-sync built from 2 parts.
 
-1.The server(there can only be one)- this what runs all the updates logic,<strong>don't use  more the 1 process</strong>, it was designed to work as a single process and knows from where to continue after restart,crash 
+1. The server(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 process</strong>, it was designed to work as a single process and knows from where to continue after restart, crash 
 
-2.The client - this is the sdk for manging the database dependencies 
+2. The client - this is the SDK for manging the database dependencies 
 
 <h2>How to use?</h2>
