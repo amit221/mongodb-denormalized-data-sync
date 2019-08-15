@@ -1,15 +1,19 @@
-# mongodb-data-sync
-In MongoDB having part od the same data in multiple collections is not an uncommon thing,
-<br>
-It is rely efficient for searching , sorting or event for just project fields.
-<br>
-handling this duplicated data can be a pain in the ass , you will have to create jobs to sync the data , or do updates in place what makes the ref collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
-<br><br>
- mongodb-data-sync comes to solve this problem by letting you declare the dependencies where this can be close to your schema and  almost real time data sync
- <br>
- it uses the power of the mongodb change stream to make the sync durable and performance efficient  
+<h1>mongodb-data-sync</h1>
+In MongoDB having duplicate data between multiple collections is not an uncommon thing, It is efficient for searching, sorting or event for just project fields.
  
- 
+handling this duplicated data can be a pain in the ass, you will have to create jobs to sync the data, or do updates in place what makes the ref collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
 
+mongodb-data-sync comes to solve this problem by letting you declare the dependencies in a logical place in your applications (for instance where you declare your schemas ) and sync the data in  almost real-time.   
 
-dont use high availability it was designed to work as a single process and knows  from where to continue after restart 
+mongodb-data-sync was designed to do all the updates and synchronization with minimum overhead on the database and do most of the checks in memory. 
+
+<h2>Notice</h2>
+<strong>mongodb-data-sync is still experimental and haven't tested on production yet</strong> 
+<h2>Architecture</h2>
+mongodb-data-sync built from 2 parts.
+
+1.The server(there can only be one)- this what runs all the updates logic,<strong>don't use  more the 1 process</strong>, it was designed to work as a single process and knows from where to continue after restart,crash 
+
+2.The client - this is the sdk for manging the database dependencies 
+
+<h2>How to use?</h2>
