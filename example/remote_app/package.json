@@ -2,7 +2,8 @@
   "name": "server",
   "version": "1.0.0",
   "dependencies": {
-    "mongodb-data-sync": "^0.0.4"
+    "mongodb-data-sync": "^0.0.4",
+    "mongoose": "^5.6.9"
   },
   "scripts": {
     "start": "node index.js",

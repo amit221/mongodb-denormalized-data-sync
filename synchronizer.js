@@ -69,20 +69,26 @@ const _extractFields = function (fieldsToSync) {
 	return dependentFields;
 };
 const _checkIfNeedToUpdate = function (dependency) {
-	
+	let id = "new";
 	if (!dependenciesMap[dependency.db_name] ||
 		!dependenciesMap[dependency.db_name][dependency.reference_collection]
 	) {
-		return "new";
+		return id;
 	}
-	const currentDependency = dependenciesMap[dependency.db_name][dependency.reference_collection];
-	if (currentDependency.reference_key !== dependency.reference_key ||
-		currentDependency.dependent_key !== dependency.dependent_key ||
-		JSON.stringify(currentDependency.dependent_fields) !== JSON.stringify(dependency.dependent_fields)
-	) {
-		return currentDependency._id;
-	}
-	return "new";
+	dependenciesMap[dependency.db_name][dependency.reference_collection].some(currentDependency => {
+		if (currentDependency.reference_key !== dependency.reference_key ||
+			currentDependency.dependent_key !== dependency.dependent_key ||
+			JSON.stringify(currentDependency.dependent_fields) !== JSON.stringify(dependency.dependent_fields)
+		) {
+			return false;
+		}
+		id = currentDependency._id;
+		return true;
+		
+	});
+	
+	return id;
+	
 };
 
 const _checkConflict = function (dependency) {
@@ -142,11 +148,9 @@ const _changeStreamLoop = async function () {
 		return _changeStreamLoop();
 	}
 	const next = await changeStream.next();
-	console.log('next', next);
 	if (!next || !next._id) {
 		return;
 	}
-	
 	try {
 		const needToUpdateObj = _getNeedToUpdateDependencies(next);
 		if (Object.keys(needToUpdateObj).length === 0) {
@@ -172,12 +176,12 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 		return;
 	}
 	const changedFields = updateDescription.updatedFields;
-	
+//	console.log("dependenciesMap", JSON.stringify(dependenciesMap));
 	dependenciesMap[ns.db][ns.coll].forEach(dependency => {
 		if (dependency.dependent_fields.some(field => changedFields[field]) === false) {
 			return;
 		}
-		const refKey = dependency.reference_key === "_id" ? documentKey : fullDocument[dependency.reference_key];
+		const refKey = dependency.reference_key === "_id" ? documentKey._id : fullDocument[dependency.reference_key];
 		Object.keys(dependency.fields_format).forEach(dependentField => {
 			if (changedFields[dependency.fields_format[dependentField]] === undefined) {
 				return;
@@ -197,7 +201,7 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 			needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key][dependentField] = changedFields[dependency.fields_format[dependentField]];
 		});
 	});
-	
+	//console.log("needToUpdateObj", JSON.stringify(needToUpdateObj));
 	return needToUpdateObj;
 };
 
@@ -205,12 +209,12 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
 	Object.keys(needToUpdateObj).forEach(dbName => {
-		const db = dbClient.getDb(dbName);
+		const db = dbClient.db(dbName);
 		Object.keys(needToUpdateObj[dbName]).forEach(collName => {
 			const collection = db.collection(collName);
 			Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 				all.push(
-					collection.updateOne({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: needToUpdateObj[dbName][collName].dependentKeys[dependentKey]})
+					collection.updateOne({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
 				);
 			});
 			
@@ -250,7 +254,6 @@ exports.addDependency = async function (body) {
 	const result = await synchronizerModel.addDependency(value);
 	await _buildDependenciesMap();
 	await _initChangeStream();
-	console.log("dependenciesMap", dependenciesMap);
 	
 	return result.insertedId;
 	

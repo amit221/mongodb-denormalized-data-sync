@@ -45,7 +45,8 @@ class SynchronizerClient {
 			fieldsToSync,
 			foreignField,
 		});
-		
+		dependency.dbName = this.dbName
+		;
 		return axios.post(this.serviceUrl + "/dependencies?api_key=" + this.apiKey, dependency);
 	};
 	
@@ -70,7 +71,6 @@ const getInstance = function ({dbName}) {
 	return _synchronizerClientInstances[dbName];
 };
 
-
-exports = {init, getInstance};
+module.exports = {init, getInstance};
 
 

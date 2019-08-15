@@ -7,9 +7,10 @@
   "scripts": {
     "start-win": "cd ./node_modules/mongodb-data-sync && npm run server",
     "start-linux": "cd ./node_modules/mongodb-data-sync ; npm run server",
-    "start-dev": "nodemon ../synchronizer_server.js"
+    "start-dev": "nodemon ../../synchronizer_server.js"
   },
   "devDependencies": {
+    "cross-env": "^5.2.0",
     "nodemon": "^1.19.1"
   }
 }

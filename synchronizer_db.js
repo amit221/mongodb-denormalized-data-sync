@@ -7,7 +7,7 @@ const schema = {
 	db_name: Joi.string().required(),
 	reference_collection: Joi.string().required(),
 	dependent_collection: Joi.string().required(),
-	dependent_fields: Joi.object().required(),
+	dependent_fields: Joi.array().items(Joi.string()).required(),
 	fields_format: Joi.object().required(),
 	reference_key: Joi.string().required(),
 	dependent_key: Joi.string().required()
@@ -24,7 +24,8 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 	await dependenciesCollection.createIndex({
 		db_name: 1,
 		reference_collection: 1,
-		dependent_collection: 1
+		dependent_collection: 1,
+		dependent_key: 1,
 	}, {unique: true});
 	resumeTokenCollection = db.collection('resume_token');
 	
