@@ -8,7 +8,7 @@ mongodb-data-sync comes to solve this problem by letting you declare the depende
 mongodb-data-sync was designed to do all the updates and synchronization with minimum overhead on the database and do most of the checks in memory. 
 
 <h2>Notice</h2>
-<strong>mongodb-data-sync is still experimental and haven't tested on production yet</strong> 
+<strong>mongodb-data-sync is still experimental and haven't been tested on production yet</strong> 
 <h2>Architecture</h2>
 mongodb-data-sync built from 2 parts.
 
