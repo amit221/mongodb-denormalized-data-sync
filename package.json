@@ -1,6 +1,6 @@
 {
   "name": "mongodb-data-sync",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "responsible of synchronizing duplicate data between collections",
   "main": "index.js",
   "dependencies": {
