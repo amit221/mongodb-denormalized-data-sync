@@ -1,5 +1,5 @@
 <h1>mongodb-data-sync</h1>
-In MongoDB having duplicate data between multiple collections is not an uncommon thing, It is efficient for searching, sorting or event for just project fields.
+In MongoDB having duplicate data between multiple collections is not an uncommon thing, It is efficient for searching, sorting or even for just project fields.
  
 handling this duplicated data can be a pain in the ass, you will have to create jobs to sync the data, or do updates in place what makes the ref collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
 
