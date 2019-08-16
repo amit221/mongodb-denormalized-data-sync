@@ -25,7 +25,11 @@ mongodb-data-sync built from 2 parts.
 
 <h2>Instructions</h2>
 
-The Instructions will for the 2 parts separately the server that runs the logic and the SDK that run the communication between your app and the server 
+The Instructions will address the 2 parts separately,
+ 
+ the server that runs the logic.
+ 
+ the SDK that run the communication between your app and the server 
 
 <h4>Server</h4>
 
