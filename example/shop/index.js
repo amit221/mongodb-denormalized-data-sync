@@ -1,7 +1,11 @@
 const SynchronizerClient = process.env.NODE_ENV === 'dev' ? require('../../synchronizer_client') : require('mongodb-data-sync');
 const mongoose = require('mongoose');
-const conn = mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true}).catch(console.error);
-SynchronizerClient.init({dbName: process.env.MONGODB_DB_NAME, serviceUrl: 'http://localhost:6500', apiKey: 'aaa'});
+mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true}).catch(console.error);
+SynchronizerClient.init({
+	dbName: process.env.MONGODB_DB_NAME,// the db name you want the synchronization to work on
+	serviceUrl: 'http://localhost:6500', // the url for the server
+	apiKey: 'aaa'//this need to be the same key you declared in your server
+});
 const OrdersModel = require('./models/orders');
 const UsersModel = require('./models/users');
 

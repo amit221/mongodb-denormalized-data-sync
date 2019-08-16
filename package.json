@@ -1,6 +1,6 @@
 {
   "name": "mongodb-data-sync",
-  "version": "0.0.7",
+  "version": "0.0.10",
   "description": "responsible of synchronizing duplicate data between collections",
   "main": "synchronizer_client.js",
   "dependencies": {
@@ -14,7 +14,7 @@
     "mongodb": "^3.2.7"
   },
   "bin": {
-    "mongodb-data-sync-server": "./synchronizer_server.js"
+    "mongodb-data-sync": "./synchronizer_server.js"
   },
   "repository": {
     "type": "git",

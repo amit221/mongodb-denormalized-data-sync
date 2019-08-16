@@ -1,21 +1,21 @@
+#!/usr/bin/env node
+
 const program = require('commander');
 program
-	.option('-, --port <port>', 'server port. default: 6500', 6500)
-	.option('-d, --dbname <dbname>', 'the database name for the package. default: mongodb_data_sync_db ', 'mongodb_data_sync_db')
-	.option('-k, --key', 'api key to used for authentication of the sdk requests, required ')
-	.option('-u, --url', 'MongoDB connection url, required');
+	.option('-p, --port <port>', 'server port.', 6500)
+	.option('-d, --dbname <dbname>', 'the database name for the package.', 'mongodb_data_sync_db')
+	.option('-k, --key <key>', 'api key to used for authentication of the sdk requests, required ')
+	.option('-u, --url <url>', 'MongoDB connection url, required');
 
-//process.env.MONGODB_URL, process.env.MONGODB_OPTIONS
 
 program.parse(process.argv);
-
 process.env.PORT = program.port;
 process.env.MONGODB_DATA_SYNC_DB = program.dbname;
 process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 
 if (!program.key) {
-	throw new Error("api is required");
+	throw new Error("key is required");
 }
 if (!program.url) {
 	throw new Error("url is required");
@@ -40,7 +40,6 @@ app.use(methodOverride());
 app.use(helmet());
 
 
-console.log(`server is running on port ${process.env.PORT}`);
 const addDependency = async function (req, res, next) {
 	try {
 		const id = await synchronizer.addDependency(req.body);
@@ -96,3 +95,4 @@ synchronizer
 
 
 http.createServer(app).listen(process.env.PORT);
+console.log(`mongodb-data-sync server is running on port ${process.env.PORT}`);
