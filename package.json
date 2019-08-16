@@ -2,18 +2,19 @@
   "name": "mongodb-data-sync",
   "version": "0.0.6",
   "description": "responsible of synchronizing duplicate data between collections",
-  "main": "index.js",
+  "main": "synchronizer_client.js",
   "dependencies": {
     "@hapi/joi": "^15.1.0",
     "axios": "^0.19.0",
     "body-parser": "^1.19.0",
+    "commander": "^3.0.0",
     "express": "^4.17.1",
     "helmet": "^3.20.0",
     "method-override": "^3.0.0",
     "mongodb": "^3.2.7"
   },
-  "scripts": {
-    "server": "node node_modules/mongodb-data-sync/synchronizer_server.js"
+  "bin": {
+    "mongodb-data-sync-server": "./synchronizer_server.js"
   },
   "repository": {
     "type": "git",

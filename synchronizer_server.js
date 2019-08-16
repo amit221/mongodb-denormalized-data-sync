@@ -1,9 +1,28 @@
-process.env.PORT = process.env.PORT || 6500;
-process.env.MONGODB_DATA_SYNC_DB = process.env.MONGODB_DATA_SYNC_DB || "mongodb_data_sync_db";
-if (!process.env.API_KEY) {
-	throw new Error("process.env.API_KEY is required");
+const program = require('commander');
+program
+	.option('-, --port <port>', 'server port. default: 6500', 6500)
+	.option('-d, --dbname <dbname>', 'the database name for the package. default: mongodb_data_sync_db ', 'mongodb_data_sync_db')
+	.option('-k, --key', 'api key to used for authentication of the sdk requests, required ')
+	.option('-u, --url', 'MongoDB connection url, required');
+
+//process.env.MONGODB_URL, process.env.MONGODB_OPTIONS
+
+program.parse(process.argv);
+
+process.env.PORT = program.port;
+process.env.MONGODB_DATA_SYNC_DB = program.dbname;
+process.env.API_KEY = program.key;
+process.env.MONGODB_URL = program.url;
+
+if (!program.key) {
+	throw new Error("api is required");
 }
-console.log()
+if (!program.url) {
+	throw new Error("url is required");
+}
+
+
+console.log();
 const http = require("http");
 const synchronizer = require('./synchronizer');
 const express = require("express");
