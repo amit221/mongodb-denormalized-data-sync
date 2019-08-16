@@ -47,14 +47,14 @@ Options:
   
   -d, --dbname <dbname>  the database name for the package. 
   
-  -k, --key              api key to used for authentication of the sdk requests, required
+  -k, --key              API key to used for authentication of the SDK requests, required
   
   -u, --url              MongoDB connection url, required
   
   -h, --help             output usage information
 ```
 
-thats it for running the server, lets jump to the the SDK  
+that's it for running the server, let's jump to the SDK  
 
 <h4>SDK</h4>
 
@@ -73,28 +73,42 @@ first initialize the client , do it as soon as possible in your app
 const SynchronizerClient = require('mongodb-data-sync');
 
 SynchronizerClient.init({
-    dbName: process.env.MONGODB_DB_NAME, // the db name you want the synchronization to work on (required)
-    serviceUrl: String, // the url for the server you run on the previous stage (required),  
+    dbName: String, // the DB name you want the synchronization to work on (required)
+    serviceUrl: String, // the URL for the server you run on the previous stage (required),  
     apiKey: String, // this need to be the same key you declared in your server (required)
 }); 
 ```
 returns a Promise
+
+<strong>getInstance</strong>
+```javascript
+const synchronizerClientInstance = SynchronizerClient.getInstance({dbName: String}); // return an instance related to your db(its not a mongodb db instance) for dependncies oprations  
+````
 
 
 <strong>addDependency</strong>
 
 
 ```javascript
-const synchronizerClientInstance = SynchronizerClient.getInstance({dbName: process.env.MONGODB_DB_NAME});
 
 synchronizerClientInstance.addDependency({
-	dependentCollection: String,// the dependent collection (required)
-	refCollection: String, //the referenced collection (required)
-	localField: String, // the dependent collection field to connect with (required)
-	foreignField:String , // the referenced collection field to connect with, default _id ,using other field then _id will cuz an extra join for each check (optional)
-	fieldsToSync: {}// the fields you want to update, the key is the field on the  dependentCollection and the value is for the refCollection
+   dependentCollection: String,// the dependent collection (required)
+   refCollection: String, //the referenced collection (required)
+   localField: String, // the dependent collection field to connect with (required)
+   foreignField:String , // the referenced collection field to connect with, default _id ,using other field then _id will cuz an extra join for each check (optional)
+   fieldsToSync: {}// the fields you want to update, the key is the field on the  dependentCollection and the value is for the refCollection
 });
 ```
 
 return Promise with the id of the Dependency 
+
+
+<strong>removeDependency</strong>
+
+
+```javascript
+synchronizerClientInstance.removeDependency(id);
+```
+
+return Promise
 
