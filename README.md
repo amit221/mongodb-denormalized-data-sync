@@ -58,7 +58,7 @@ that's it for running the server, let's jump to the SDK
 
 <h4>SDK</h4>
 
-You can look at the <a href='https://github.com/amit221/mongodb-denormalized-data-sync/tree/master/example'>example</a> on github
+You can look at the <a target='_blank' href='https://github.com/amit221/mongodb-denormalized-data-sync/tree/master/example'>example</a> on github
 
 <h5>Install</h5>
 
