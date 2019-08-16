@@ -60,7 +60,7 @@ that's it for running the server, let's jump to the SDK
 
 You can look at the <a href='https://github.com/amit221/mongodb-denormalized-data-sync/tree/master/example'>example</a> on github
 
-<h5>SDK</h5>
+<h5>Install</h5>
 
 ```
 npm install mongodb-data-sync -save
