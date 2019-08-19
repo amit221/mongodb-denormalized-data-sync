@@ -1,7 +1,10 @@
 <h1>mongodb-data-sync</h1>
-In MongoDB having duplicate data between multiple collections is not an uncommon thing, It is efficient for searching, sorting or event for just project fields.
- 
-handling this duplicated data can be a pain in the ass, you will have to create jobs to sync the data, or do updates in place what makes the ref collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
+Duplicate data in multiple collections is a common thing in MongoDB.
+ It is efficient for searching, sorting and even project fields.
+
+Handling duplicate data can be a pain.
+
+you will have to create jobs to sync the data, or do updates in place what makes the reference collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
 
 mongodb-data-sync comes to solve this problem by letting you declare the dependencies in a logical place in your applications (for instance where you declare your schemas ) and sync the data in almost real-time.   
 
@@ -14,14 +17,14 @@ mongodb-data-sync was designed to do all the updates and synchronization with mi
 <ul>
 <li>MongoDB v3.6 or higher replaica set </li>
 <li>nodejs 7.6 or higher </li>
-
 </ul>
+
 <h2>Architecture</h2>
-mongodb-data-sync built from 2 parts.
+mongodb-data-sync built from 2 seprate parts.
 
-1. The server(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 process</strong>, it was designed to work as a single process and knows from where to continue after restart, crash 
+1. The server application(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 application</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so dont try to do auto-scaling or set 2 containers for high availability 
 
-2. The SDK - responsible for manging the database dependencies of the application ,
+2. The SDK - responsible for manging the database dependencies of the your application ,
 
 <h2>Instructions</h2>
 
