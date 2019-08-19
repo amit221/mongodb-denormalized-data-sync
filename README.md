@@ -1,6 +1,6 @@
 <h1>mongodb-data-sync</h1>
 Duplicate data in multiple collections is a common thing in MongoDB.
-It is efficient for searching, sorting and even project fields.
+It is efficient for searching, sorting and even projects fields.
 
 Handling duplicate data can be a pain.
 you will have to create jobs to sync the data, or do updates in place what makes the reference collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
@@ -12,6 +12,18 @@ mongodb-data-sync was designed to do all the updates and synchronization with mi
 <h2>Notice</h2>
 <strong>mongodb-data-sync is still experimental and hasn't been tested on production yet</strong> 
 
+<h2>Pros and cons of having duplicate data in multiple collection </h2>
+
+<h4>pros</h4>
+1. you won't have to do joins.
+2. you can do index on all the fields.
+3. faster and easier searching and sorting
+
+<h4>cons</h4>
+1. having duplicate data means more storage usage.
+2. hard do maintenance and keep in track all the connections(this is what mongodb-data-sync comes to solve).
+3. add write operations, every update will have to update multiple collections  
+
 <h2>requirements</h2>
 <ul>
 <li>MongoDB v3.6 or higher replaica set </li>
@@ -21,9 +33,9 @@ mongodb-data-sync was designed to do all the updates and synchronization with mi
 <h2>Architecture</h2>
 mongodb-data-sync built from 2 seprate parts.
 
-1. The server application(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 application</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so dont try to do auto-scaling or set 2 containers for high availability 
+1. The server application(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 application</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
 
-2. The SDK - responsible for manging the database dependencies of the your application ,
+2. The SDK - responsible for managing the database dependencies of your application,
 
 <h2>Instructions</h2>
 
@@ -31,7 +43,7 @@ The Instructions will address the 2 parts separately,
  
  the server that runs the logic.
  
- the SDK that run the communication between your app and the server 
+ the SDK that runs the communication between your app and the server 
 
 <h4>Server</h4>
 
