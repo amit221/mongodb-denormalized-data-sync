@@ -1,9 +1,8 @@
 <h1>mongodb-data-sync</h1>
 Duplicate data in multiple collections is a common thing in MongoDB.
- It is efficient for searching, sorting and even project fields.
+It is efficient for searching, sorting and even project fields.
 
 Handling duplicate data can be a pain.
-
 you will have to create jobs to sync the data, or do updates in place what makes the reference collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
 
 mongodb-data-sync comes to solve this problem by letting you declare the dependencies in a logical place in your applications (for instance where you declare your schemas ) and sync the data in almost real-time.   
