@@ -35,7 +35,7 @@ const order1 = new OrdersModel({
 	await seller.save();
 	await order1.save();
 	user.username = "user changed";
-	user.save();
+	await user.save();
 	seller.username = "seller changed";
-	seller.save();
+	await seller.save();
 })();

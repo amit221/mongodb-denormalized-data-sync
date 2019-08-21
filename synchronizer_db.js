@@ -40,7 +40,6 @@ exports.removeDependency = function (id) {
 };
 
 exports.addDependency = function (payload) {
-	
 	return dependenciesCollection.insertOne(payload);
 };
 exports.getDependencies = function () {

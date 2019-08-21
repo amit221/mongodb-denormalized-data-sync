@@ -64,11 +64,11 @@ const _buildDependenciesMap = async function () {
 };
 
 const _extractFields = function (fieldsToSync) {
-	const dependentFields = [];
+	const dependentFields = new Set();
 	Object.keys(fieldsToSync).forEach(key => {
-		dependentFields.push(fieldsToSync[key]);
+		dependentFields.add(fieldsToSync[key]);
 	});
-	return dependentFields;
+	return [...dependentFields];
 };
 const _checkIfNeedToUpdate = function (dependency) {
 	let id = "new";
@@ -198,6 +198,7 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 			if (!needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key]) {
 				needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key] = {};
 			}
+			
 			needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key][dependentField] = changedFields[dependency.fields_format[dependentField]];
 		});
 	});
@@ -213,6 +214,7 @@ const _updateCollections = function (needToUpdateObj) {
 		Object.keys(needToUpdateObj[dbName]).forEach(collName => {
 			const collection = db.collection(collName);
 			Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
+				debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 				all.push(
 					collection.updateOne({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
 				);

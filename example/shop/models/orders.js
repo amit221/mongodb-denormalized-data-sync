@@ -10,11 +10,12 @@ synchronizerClientInstance.addDependency({
 	localField: "user_id",
 	fieldsToSync: {
 		username: "username",
+		nickname: "username",
 		email: "email"
 	}
 }).then((response) => {
-	console.log("id",response.data);
-
+	console.log("id", response.data);
+	
 }).catch(err => {
 	console.error(err.response.data);
 });
@@ -26,8 +27,8 @@ synchronizerClientInstance.addDependency({
 		seller_name: "username",
 	}
 }).then((response) => {
-	console.log("id",response.data);
-
+	console.log("id", response.data);
+	
 }).catch(err => {
 	console.error(err.response.data);
 });
@@ -41,6 +42,7 @@ const ordersSchema = new Schema({
 	seller_id: ObjectId,
 	seller_name: String,
 	username: String,
+	nickname: String,
 	email: String,
 	
 });
