@@ -61,13 +61,15 @@ mongodb-data-sync --key "some key" --url "mongodb connection url"
 ```
 Options:
 
-  -p, --port <port>       server port. 
+  --debug                console log important information
   
-  -d, --dbname <dbname>  the database name for the package. 
+  -p, --port <port>      server port. (default: 6500)
   
-  -k, --key              API key to used for authentication of the SDK requests, required
+  -d, --dbname <dbname>  the database name for the package. (default: "mongodb_data_sync_db")
   
-  -u, --url              MongoDB connection url, required
+  -k, --key <key>        api key to used for authentication of the sdk requests, required
+  
+  -u, --url <url>        MongoDB connection url, required
   
   -h, --help             output usage information
 ```
