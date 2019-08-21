@@ -271,7 +271,6 @@ exports.removeDependency = async function (id) {
 exports.showDependencies = function () {
 	return dependenciesMap;
 };
-
 exports.syncAll = async function (dbs) {
 
 };
