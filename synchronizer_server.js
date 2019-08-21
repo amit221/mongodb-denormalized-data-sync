@@ -3,10 +3,10 @@
 const program = require("commander");
 const {debug} = require("./utils");
 program
+	.option("--debug", "console log important information")
 	.option("-p, --port <port>", "server port.", 6500)
 	.option("-d, --dbname <dbname>", "the database name for the package.", "mongodb_data_sync_db")
 	.option("-k, --key <key>", "api key to used for authentication of the sdk requests, required ")
-	.option("--debug", "console log some information")
 	.option("-u, --url <url>", "MongoDB connection url, required");
 
 
