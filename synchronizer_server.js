@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const program = require('commander');
+const program = require("commander");
 program
-	.option('-p, --port <port>', 'server port.', 6500)
-	.option('-d, --dbname <dbname>', 'the database name for the package.', 'mongodb_data_sync_db')
-	.option('-k, --key <key>', 'api key to used for authentication of the sdk requests, required ')
-	.option('-u, --url <url>', 'MongoDB connection url, required');
+	.option("-p, --port <port>", "server port.", 6500)
+	.option("-d, --dbname <dbname>", "the database name for the package.", "mongodb_data_sync_db")
+	.option("-k, --key <key>", "api key to used for authentication of the sdk requests, required ")
+	.option("-u, --url <url>", "MongoDB connection url, required");
 
 
 program.parse(process.argv);
@@ -21,10 +21,8 @@ if (!program.url) {
 	throw new Error("url is required");
 }
 
-
-console.log();
 const http = require("http");
-const synchronizer = require('./synchronizer');
+const synchronizer = require("./synchronizer");
 const express = require("express");
 const helmet = require("helmet");
 const bodyParser = require("body-parser");
@@ -40,34 +38,31 @@ app.use(methodOverride());
 app.use(helmet());
 
 
-const addDependency = async function (req, res, next) {
+const addDependency = async function (req, res) {
 	try {
 		const id = await synchronizer.addDependency(req.body);
 		res.send(id);
-	}
-	catch (e) {
+	} catch (e) {
 		res.status(500).send(e.message);
 	}
 	
 };
-const removeDependency = async function (req, res, next) {
+const removeDependency = async function (req, res) {
 	try {
 		if (!req.params.id) {
 			return res.status(500).send("id is required");
 		}
 		await synchronizer.removeDependency(req.params.id);
 		res.send("ok");
-	}
-	catch (e) {
+	} catch (e) {
 		res.status(500).send(e.message);
 	}
 };
-const getDependencies = async function (req, res, next) {
+const getDependencies = async function (req, res) {
 	try {
 		const result = await synchronizer.showDependencies();
 		res.send(result);
-	}
-	catch (e) {
+	} catch (e) {
 		res.status(500).send(e.message);
 	}
 };

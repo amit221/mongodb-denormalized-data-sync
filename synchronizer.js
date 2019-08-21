@@ -1,4 +1,4 @@
-const synchronizerModel = require('./synchronizer_db');
+const synchronizerModel = require("./synchronizer_db");
 
 const dependenciesMap = {};
 const referenceKeyProject = {};
@@ -25,7 +25,7 @@ const _initChangeStream = async function () {
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let {pipeline, fullDocument} = _buildPipeline();
-	fullDocument = fullDocument ? 'updateLookup' : undefined;
+	fullDocument = fullDocument ? "updateLookup" : undefined;
 	
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
@@ -106,7 +106,7 @@ const _checkConflict = function (dependency) {
 	dependency.dependent_fields.forEach(field => {
 		dependenciesMap[dependency.db_name][dependency.dependent_collection].forEach(dependency => {
 			if (dependency.dependent_fields.includes(field)) {
-				throw new Error('a dependency conflict has accord in field ' + field);
+				throw new Error("a dependency conflict has accord in field " + field);
 			}
 			
 		});
@@ -116,7 +116,7 @@ const _checkConflict = function (dependency) {
 const _buildPipeline = function () {
 	let fullDocument = false;
 	const $or = [];
-	const $match = {operationType: 'update', $or};
+	const $match = {operationType: "update", $or};
 	const pipeline = [
 		{$match}
 	];
@@ -161,8 +161,7 @@ const _changeStreamLoop = async function () {
 		await _updateCollections(needToUpdateObj);
 		
 		return _changeStreamLoop();
-	}
-	catch (e) {
+	} catch (e) {
 		console.error(e);
 		return _changeStreamLoop();
 	}
@@ -176,7 +175,7 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 		return;
 	}
 	const changedFields = updateDescription.updatedFields;
-//	console.log("dependenciesMap", JSON.stringify(dependenciesMap));
+	//	console.log("dependenciesMap", JSON.stringify(dependenciesMap));
 	dependenciesMap[ns.db][ns.coll].forEach(dependency => {
 		if (dependency.dependent_fields.some(field => changedFields[field]) === false) {
 			return;
@@ -246,7 +245,7 @@ exports.addDependency = async function (body) {
 		throw new Error(error);
 	}
 	const id = _checkIfNeedToUpdate(value);
-	if (id !== 'new') {
+	if (id !== "new") {
 		return id;
 	}
 	

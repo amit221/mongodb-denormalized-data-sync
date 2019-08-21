@@ -1,5 +1,5 @@
 const _synchronizerClientInstances = {};
-const axios = require('axios');
+const axios = require("axios");
 const _validateDependency = function ({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id"}) {
 	
 	
@@ -48,15 +48,15 @@ class SynchronizerClient {
 		dependency.dbName = this.dbName
 		;
 		return axios.post(this.serviceUrl + "/dependencies?api_key=" + this.apiKey, dependency);
-	};
+	}
 	
 	removeDependency(id) {
 		return axios.delete(this.serviceUrl + "/dependencies/" + id + "?api_key=" + this.apiKey);
-	};
+	}
 	
 	getDependencies() {
 		return axios.get(this.serviceUrl + "/dependencies?api_key=" + this.apiKey);
-	};
+	}
 }
 
 const init = function ({dbName, serviceUrl, apiKey}) {

@@ -14,20 +14,20 @@ const schema = {
 };
 
 exports.connect = async function (connectionString, connectionOptions = {}) {
-	if (typeof connectionOptions === 'string') {
+	if (typeof connectionOptions === "string") {
 		connectionOptions = JSON.parse(connectionOptions);
 	}
 	connectionOptions.useNewUrlParser = true;
 	client = await MongoClient.connect(connectionString, connectionOptions);
 	db = client.db(process.env.MONGODB_DATA_SYNC_DB);
-	dependenciesCollection = db.collection('dependencies');
+	dependenciesCollection = db.collection("dependencies");
 	await dependenciesCollection.createIndex({
 		db_name: 1,
 		reference_collection: 1,
 		dependent_collection: 1,
 		dependent_key: 1,
 	}, {unique: true});
-	resumeTokenCollection = db.collection('resume_token');
+	resumeTokenCollection = db.collection("resume_token");
 	
 	return client;
 };
@@ -67,8 +67,8 @@ const exitHandler = async (options) => {
 	}
 };
 
-process.on('exit', exitHandler.bind(null, {}));
-process.on('SIGTERM', exitHandler.bind(null, {exit: true}));
-process.on('SIGINT', exitHandler.bind(null, {exit: true}));
-process.on('SIGUSR1', exitHandler.bind(null, {exit: true}));
-process.on('SIGUSR2', exitHandler.bind(null, {exit: true}));
+process.on("exit", exitHandler.bind(null, {}));
+process.on("SIGTERM", exitHandler.bind(null, {exit: true}));
+process.on("SIGINT", exitHandler.bind(null, {exit: true}));
+process.on("SIGUSR1", exitHandler.bind(null, {exit: true}));
+process.on("SIGUSR2", exitHandler.bind(null, {exit: true}));
