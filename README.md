@@ -31,7 +31,7 @@ mongodb-data-sync was designed to do all the updates and synchronization with mi
 </ul>
 
 <h2>Architecture</h2>
-mongodb-data-sync built from 2 seprate parts.
+mongodb-data-sync built from 2 separate parts.
 
 1. The server application(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 application</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
 
