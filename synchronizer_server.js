@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 const program = require("commander");
+const {debug} = require("./utils");
 program
 	.option("-p, --port <port>", "server port.", 6500)
 	.option("-d, --dbname <dbname>", "the database name for the package.", "mongodb_data_sync_db")
 	.option("-k, --key <key>", "api key to used for authentication of the sdk requests, required ")
+	.option("--debug", "console log some information")
 	.option("-u, --url <url>", "MongoDB connection url, required");
 
 
@@ -13,6 +15,9 @@ process.env.PORT = program.port;
 process.env.MONGODB_DATA_SYNC_DB = program.dbname;
 process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
+process.env.DEBUG = program.debug;
+
+debug("commend line arguments:\n", program.opts());
 
 if (!program.key) {
 	throw new Error("key is required");

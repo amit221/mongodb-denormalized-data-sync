@@ -1,5 +1,5 @@
 const synchronizerModel = require("./synchronizer_db");
-
+const {debug} = require("./utils");
 const dependenciesMap = {};
 const referenceKeyProject = {};
 let pauseChangeStreamLoop = true;
@@ -59,6 +59,8 @@ const _buildDependenciesMap = async function () {
 			dependent_key
 		} = dependency);
 	});
+	debug("dependenciesMap:\n", JSON.stringify(dependenciesMap));
+	
 };
 
 const _extractFields = function (fieldsToSync) {
@@ -175,7 +177,6 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 		return;
 	}
 	const changedFields = updateDescription.updatedFields;
-	//	console.log("dependenciesMap", JSON.stringify(dependenciesMap));
 	dependenciesMap[ns.db][ns.coll].forEach(dependency => {
 		if (dependency.dependent_fields.some(field => changedFields[field]) === false) {
 			return;
@@ -200,7 +201,7 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 			needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key][dependentField] = changedFields[dependency.fields_format[dependentField]];
 		});
 	});
-	//console.log("needToUpdateObj", JSON.stringify(needToUpdateObj));
+	debug("needToUpdateObj:\n", JSON.stringify(needToUpdateObj));
 	return needToUpdateObj;
 };
 
