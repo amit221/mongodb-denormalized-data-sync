@@ -12,15 +12,16 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 
 <h2>Core Features</h2>
-1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory. 
 
-2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.  
+1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory.
 
-3. It has a plan A and B to recover after a crash.  
+2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
 
-4. It gives you an easy way to create dependncies with no worries of handling them. 
+3. It has a plan A and B to recover after a crash.
 
-5. After declaring Your dependncies you can retroactive sync your data.  
+4. It gives you an easy way to create dependncies with no worries of handling them.
+
+5. After declaring Your dependncies you can retroactive sync your data.
 
 
 
@@ -30,11 +31,13 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 <h2>Pros and cons of having duplicate data in multiple collection </h2>
 
 <h4>pros</h4>
+
 1. you won't have to do joins.
 2. you can do index on all the fields.
 3. faster and easier searching and sorting
 
 <h4>cons</h4>
+
 1. having duplicate data means more storage usage.
 2. hard do maintenance and keep in track all the connections(this is what mongodb-data-sync comes to solve).
 3. add write operations, every update will have to update multiple collections  
@@ -46,6 +49,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 </ul>
 
 <h2>Architecture</h2>
+
 mongodb-data-sync built from 2 separate parts.
 
 1.the engine <b>(there should only be one)</b> - the engine is a nodejs server appliaction thats you have to run from your mechine(you will see how do it in the next steps) this what runs all the updates and recovery logic,<strong>don't use  more than 1 engine</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
