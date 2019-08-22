@@ -14,7 +14,9 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 <h2>Core Features</h2>
 1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory.
 2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
-3. It has a plan A and plan B to recover after a crash. 
+3. It has a plan A and B to recover after a crash.
+4. It gives you an easy way to create dependncies with no worries of handling them 
+5. After declaring Your dependncies you can retroactive sync your data  
 
 
 <h2>Notice</h2>
@@ -41,7 +43,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 <h2>Architecture</h2>
 mongodb-data-sync built from 2 separate parts.
 
-1. The server application(there can only be one)- this what runs all the updates logic,<strong>don't use  more than 1 application</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
+1.the engine <b>(there should only be one)</b> - the engine is a nodejs server appliaction thats you have to run from your mechine(you will see how do it in the next steps) this what runs all the updates and recovery logic,<strong>don't use  more than 1 engine</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
 
 2. The SDK - responsible for managing the database dependencies of your application,
 
@@ -49,11 +51,11 @@ mongodb-data-sync built from 2 separate parts.
 
 The Instructions will address the 2 parts separately,
  
- the server that runs the logic.
+ the engine that runs the logic.
  
  the SDK that runs the communication between your app and the server 
 
-<h4>Server</h4>
+<h4>Engine</h4>
 
 Run  
 
