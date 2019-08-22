@@ -10,7 +10,8 @@ const dependenciesSchema = {
 	dependent_fields: Joi.array().items(Joi.string()).required(),
 	fields_format: Joi.object().required(),
 	reference_key: Joi.string().required(),
-	dependent_key: Joi.string().required()
+	dependent_key: Joi.string().required(),
+	reference_collection_last_update_field: Joi.string()
 };
 
 const syncSchema = {
