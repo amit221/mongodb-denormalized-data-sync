@@ -240,7 +240,8 @@ exports.addDependency = async function (body) {
 		reference_key: body.foreignField,
 		dependent_key: body.localField,
 		fields_format: body.fieldsToSync,
-		dependent_fields: _extractFields(body.fieldsToSync)
+		dependent_fields: _extractFields(body.fieldsToSync),
+		reference_collection_last_update_field: body.refCollectionLastUpdateField
 	};
 	
 	const {error, value} = synchronizerModel.validate(payload);
@@ -274,6 +275,18 @@ exports.removeDependency = async function (id) {
 exports.showDependencies = function () {
 	return dependenciesMap;
 };
-exports.syncAll = async function (dbs) {
+// code: 40585,
 
+exports.syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = false}) {
+	for (const db in dependenciesMap) {
+		for (const referenceCollection in dependenciesMap[db]) {
+			dependenciesMap[db][referenceCollection];
+		}
+	}
+	Object.keys(dependenciesMap).forEach(db => {
+		Object.keys(dependenciesMap[db]).forEach(referenceCollection => {
+		
+		});
+		
+	});
 };

@@ -36,7 +36,7 @@ class SynchronizerClient {
 		this.apiKey = apiKey;
 	}
 	
-	async addDependency({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id"}) {
+	async addDependency({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id", refCollectionLastUpdateField}) {
 		
 		const dependency = _validateDependency({
 			dependentCollection,
@@ -44,9 +44,9 @@ class SynchronizerClient {
 			localField,
 			fieldsToSync,
 			foreignField,
+			refCollectionLastUpdateField
 		});
-		dependency.dbName = this.dbName
-		;
+		dependency.dbName = this.dbName;
 		return axios.post(this.serviceUrl + "/dependencies?api_key=" + this.apiKey, dependency);
 	}
 	

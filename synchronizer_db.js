@@ -1,9 +1,9 @@
 const Joi = require("@hapi/joi");
 const {MongoClient, ObjectId} = require("mongodb");
 
-let client, db, dependenciesCollection, resumeTokenCollection;
+let client, db, dependenciesCollection, resumeTokenCollection, syncCollection;
 
-const schema = {
+const dependenciesSchema = {
 	db_name: Joi.string().required(),
 	reference_collection: Joi.string().required(),
 	dependent_collection: Joi.string().required(),
@@ -11,6 +11,12 @@ const schema = {
 	fields_format: Joi.object().required(),
 	reference_key: Joi.string().required(),
 	dependent_key: Joi.string().required()
+};
+
+const syncSchema = {
+	...dependenciesSchema,
+	batchSize: Joi.number().required(),
+	last_id_checked: Joi.string().default(""),
 };
 
 exports.connect = async function (connectionString, connectionOptions = {}) {
@@ -28,12 +34,12 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 		dependent_key: 1,
 	}, {unique: true});
 	resumeTokenCollection = db.collection("resume_token");
-	
+	syncCollection = db.collection("sync");
 	return client;
 };
 
 exports.validate = function (payload) {
-	return Joi.validate(payload, schema, {abortEarly: false});
+	return Joi.validate(payload, dependenciesSchema, {abortEarly: false});
 };
 exports.removeDependency = function (id) {
 	return dependenciesCollection.deleteOne({_id: new ObjectId(id)});
@@ -47,13 +53,30 @@ exports.getDependencies = function () {
 };
 
 exports.addResumeToken = function (payload) {
+	payload.last_update = new Date();
 	return resumeTokenCollection.updateOne({}, {$set: payload}, {upsert: true});
 };
 
 exports.getResumeToken = function () {
 	return resumeTokenCollection.findOne();
 };
+exports.addSyncItem = function (payload) {
+	return syncCollection.insertOne(payload);
+};
+exports.updateSyncItem = function (id, payload) {
+	return syncCollection.updateOne({id: new ObjectId(id)}, {$set: payload});
+};
+exports.removeSyncItem = function (id) {
+	return syncCollection.deleteOne({_id: new ObjectId(id)});
+};
 
+exports.getNextSyncItem = function () {
+	return syncCollection.findOne();
+};
+
+exports.cleanSyncDatabase = function () {
+	return syncCollection.removeMany();
+};
 
 process.stdin.resume();
 const exitHandler = async (options) => {
