@@ -1,13 +1,21 @@
 <h1>mongodb-data-sync</h1>
-Duplicate data in multiple collections is a common thing in MongoDB.
+Duplicate data between multiple collections (<a href='https://en.wikipedia.org/wiki/Denormalization'>Denormalization</a>) is a common thing in MongoDB.
 It is efficient for searching, sorting and even projects fields.
 
 Handling duplicate data can be a pain.
-you will have to create jobs to sync the data, or do updates in place what makes the reference collection need to know about all the collections needed data from him . and we all know the bugs that can lead to.
+
+you will have to create jobs to sync the data, or do updates in place for all the collections that also needed to be updated.
 
 mongodb-data-sync comes to solve this problem by letting you declare the dependencies in a logical place in your applications (for instance where you declare your schemas ) and sync the data in almost real-time.   
 
-mongodb-data-sync was designed to do all the updates and synchronization with minimum overhead on the database and do most of the checks in memory. 
+It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
+
+
+<h2>Core Features</h2>
+1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory.
+2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
+3. It has a plan A and plan B to recover after a crash. 
+
 
 <h2>Notice</h2>
 <strong>mongodb-data-sync is still experimental and hasn't been tested on production yet</strong> 

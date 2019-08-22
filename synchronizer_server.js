@@ -74,7 +74,14 @@ const getDependencies = async function (req, res) {
 		res.status(500).send(e.message);
 	}
 };
-
+const sync = async function (req, res) {
+	try {
+		const result = await synchronizer.syncAll(req.body);
+		res.send(result);
+	} catch (e) {
+		res.status(500).send(e.message);
+	}
+};
 const auth = function (req, res, next) {
 	if (req.query.api_key !== process.env.API_KEY) {
 		return res.status(401).send("unauthorized");
@@ -84,6 +91,7 @@ const auth = function (req, res, next) {
 
 app.get("/dependencies", auth, getDependencies);
 app.post("/dependencies", auth, addDependency);
+app.post("/sync", auth, sync);
 app.delete("/dependencies", auth, removeDependency);
 
 synchronizer
