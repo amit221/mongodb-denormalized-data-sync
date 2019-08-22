@@ -1,6 +1,6 @@
 <h1>mongodb-data-sync</h1>
 Duplicate data between multiple collections (<a href='https://en.wikipedia.org/wiki/Denormalization'>Denormalization</a>) is a common thing in MongoDB.
-It is efficient for searching, sorting and even projects fields.
+It is efficient for searching, sorting and even fields projection.
 
 Handling duplicate data can be a pain,
 you will have to create jobs to sync the data, or do updates in place for all the collections that also needed to be updated.
