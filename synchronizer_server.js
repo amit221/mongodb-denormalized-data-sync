@@ -16,6 +16,9 @@ process.env.MONGODB_DATA_SYNC_DB = program.dbname;
 process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
+if (program.debug) {
+	require("console-from");
+}
 
 debug("commend line arguments:\n", program.opts());
 

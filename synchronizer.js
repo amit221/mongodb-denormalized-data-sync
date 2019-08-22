@@ -1,5 +1,5 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, DUPLIACTE_CODE_ERROR} = require("./utils");
+const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
 const dependenciesMap = {};
 const referenceKeyProject = {};
 let pauseChangeStreamLoop = true;
@@ -12,6 +12,18 @@ const _sleep = (time) => {
 			resolve();
 		}, time);
 	});
+};
+
+const _removeResumeTokenAndInit = async function (err) {
+	if (err.code === RESUME_TOKEN_ERROR) {
+		changeStream = undefined;
+		const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
+		await synchronizerModel.removeResumeToken();
+		syncAll({cleanOldSyncTasks: true, fromDate: oldResumeTokenDoc.last_update}).catch(console.error);
+		await _initChangeStream();
+		return false;
+	}
+	return true;
 };
 
 const _initChangeStream = async function () {
@@ -32,9 +44,12 @@ const _initChangeStream = async function () {
 	}
 	
 	changeStream = dbClient.watch(pipeline, {resumeAfter, fullDocument});
-	changeStream.on("error", err => {
-		console.error(err);
-		process.exit();
+	changeStream.on("error", async err => {
+		if (await _removeResumeTokenAndInit(err) === true) {
+			console.error(err);
+			process.exit();
+		}
+		
 	});
 	pauseChangeStreamLoop = false;
 	
@@ -151,7 +166,16 @@ const _changeStreamLoop = async function () {
 		await _sleep(500);
 		return _changeStreamLoop();
 	}
-	const next = await changeStream.next();
+	let next;
+	try {
+		await changeStream.hasNext();
+		next = await changeStream.next();
+		
+	} catch (e) {
+		if (await _removeResumeTokenAndInit(e) === true) {
+			throw e;
+		}
+	}
 	if (!next || !next._id) {
 		return;
 	}
@@ -261,7 +285,7 @@ const _createSyncItem = async function ({db_name, reference_collection, dependen
 	try {
 		await synchronizerModel.addSyncItem(value);
 	} catch (e) {
-		if (e.code !== DUPLIACTE_CODE_ERROR) {
+		if (e.code !== DUPLICATE_CODE_ERROR) {
 			throw e;
 		}
 	}
@@ -320,7 +344,7 @@ exports.showDependencies = function () {
 	return dependenciesMap;
 };
 
-const _updateItemBatchResults = function ({syncItem, documents, dependentCollection}) {
+const _updateSyncItemBatchResults = function ({syncItem, documents, dependentCollection}) {
 	const bulk = [];
 	
 	documents.forEach(doc => {
@@ -335,7 +359,8 @@ const _updateItemBatchResults = function ({syncItem, documents, dependentCollect
 			}
 		});
 	});
-	dependentCollection.bulkWrite(bulk);
+	debug("_updateSyncItemBatchResults", JSON.stringify(bulk));
+	return dependentCollection.bulkWrite(bulk);
 };
 
 const _getSyncItemBatchResults = function ({syncItem, referenceCollection, ignoreLastUpdateField, fromDate}) {
@@ -356,24 +381,45 @@ const _getSyncItemBatchResults = function ({syncItem, referenceCollection, ignor
 };
 const _syncItem = async function ({ignoreLastUpdateField, fromDate}) {
 	const syncItem = await synchronizerModel.getNextSyncItem();
+	if (!syncItem) {
+		return null;
+	}
 	const db = dbClient.db(syncItem.db_name);
 	const referenceCollection = db.collection(syncItem.reference_collection);
 	const dependentCollection = db.collection(syncItem.dependent_collection);
 	const documents = await _getSyncItemBatchResults({syncItem, referenceCollection, ignoreLastUpdateField, fromDate});
-	_updateSyncItemBatchResults({documents, syncItem, dependentCollection});
+	const active = documents.length < batchSize;
+	if (documents.length === 0) {
+		synchronizerModel.updateSyncItem(syncItem._id, {active});
+		return null;
+	}
+	await _updateSyncItemBatchResults({documents, syncItem, dependentCollection});
+	const lastId = documents[documents.length - 1]._id;
+	return synchronizerModel.updateSyncItem(syncItem._id, {last_id_checked: lastId, active});
+	
 };
-
-
-exports.syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false}) {
+const _syncItems = async function ({ignoreLastUpdateField, fromDate, retryDelay}) {
 	try {
-		//todo
-		//cleanOldSyncTasks
+		while (await _syncItem({ignoreLastUpdateField, fromDate})) {
 		
-		await __createSyncItems(dbs, batchSize);
-		_syncItem({ignoreLastUpdateField, fromDate});
-		
-		
-	} catch (e) {
-		
+		}
+	}
+	catch (e) {
+		if (retryDelay) {
+			setTimeout(() => {
+				_syncItems({ignoreLastUpdateField, fromDate, retryDelay}).catch(console.error);
+			}, retryDelay);
+		}
 	}
 };
+
+const syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false, retryDelay = 0}) {
+	
+	if (cleanOldSyncTasks === true) {
+		await synchronizerModel.cleanSyncDatabase();
+	}
+	await __createSyncItems(dbs, batchSize);
+	await _syncItems({ignoreLastUpdateField, fromDate, retryDelay});
+	
+};
+exports.syncAll = syncAll;

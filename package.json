@@ -31,5 +31,8 @@
   "bugs": {
     "url": "https://github.com/amit221/mongodb-denormalized-data-sync/issues"
   },
-  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme"
+  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme",
+  "devDependencies": {
+    "console-from": "^1.0.12"
+  }
 }

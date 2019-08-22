@@ -6,5 +6,5 @@ const debug = function () {
 };
 exports.debug = debug;
 
-exports.DUPLIACTE_CODE_ERROR = 11000;
+exports.DUPLICATE_CODE_ERROR = 11000;
 exports.RESUME_TOKEN_ERROR = 40585;
