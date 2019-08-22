@@ -51,7 +51,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 mongodb-data-sync built from 2 separate parts.
 
-1.The engine <b>(there should only be one)</b> - a nodejs server appliaction thats you have to run from your machine(you will see how do it in the next steps). The engine runs all the updates and recovery logic. <strong>Don't use  more than 1 engine</strong>, it was designed to work as a single process. It knows from where to continue after a restart/crash. Don't try auto-scaling or set 2 containers for high availability. 
+1. The engine <b>(there should only be one)</b> - a nodejs server appliaction thats you have to run from your machine(you will see how do it in the next steps). The engine runs all the updates and recovery logic. <strong>Don't use  more than 1 engine</strong>, it was designed to work as a single process. It knows from where to continue after a restart/crash. Don't try auto-scaling or set 2 containers for high availability. 
 
 2. The SDK - responsible for managing the database dependencies of your application. It connects your app with the engine.
 
