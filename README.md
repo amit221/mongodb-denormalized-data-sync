@@ -2,19 +2,19 @@
 Duplicate data between multiple collections (<a href='https://en.wikipedia.org/wiki/Denormalization'>Denormalization</a>) is a common thing in MongoDB.
 It is efficient for searching, sorting and even fields projection.
 
-Handling duplicate data can be a pain,
-you will have to create jobs to sync the data, or do updates in place for all the collections that also needed to be updated.
+Handling duplicate data is a pain,
+you will have to create jobs to sync the data, or update in place all the collections with the duplicated data.
 
-mongodb-data-sync comes to solve this problem by letting you declare the dependencies in a logical place in your applications (for instance where you declare your schemas ) and sync the data in almost real-time.   
+mongodb-data-sync solves this problem. With mongodb-data-sync you declare the dependencies in a logical place, for instance, with the schemas). mongodb-data-sync takes care of syncing the data in almost real-time.   
 
-It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
+It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track of changes.
 
 
 <h2>Core Features</h2>
 
-1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory.
+1. It was designed to do all the synchronization with minimum overhead on the database. Most of the checks are done in memory.
 
-2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.
+2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track of changes.
 
 3. It has a plan A and B to recover after a crash.
 
@@ -29,19 +29,19 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 <h2>Pros and cons of having duplicate data in multiple collection </h2>
 
-<h4>pros</h4>
+<h4>Pros</h4>
 
-1. you won't have to do joins.
-2. you can do index on all the fields.
-3. faster and easier searching and sorting
+1. No need for joins.
+2. Index all fields.
+3. Faster and easier searching and sorting.
 
-<h4>cons</h4>
+<h4>Cons</h4>
 
-1. having duplicate data means more storage usage.
-2. hard do maintenance and keep in track all the connections(this is what mongodb-data-sync comes to solve).
-3. add write operations, every update will have to update multiple collections  
+1. More storage usage.
+2. Hard to maintain: Need to keep track all the connections (this is what mongodb-data-sync comes to solve).
+3. Add write operations, every update will have to update multiple collections  
 
-<h2>requirements</h2>
+<h2>Requirements</h2>
 <ul>
 <li>MongoDB v3.6 or higher replaica set </li>
 <li>nodejs 7.6 or higher </li>
@@ -51,19 +51,15 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 mongodb-data-sync built from 2 separate parts.
 
-1.the engine <b>(there should only be one)</b> - the engine is a nodejs server appliaction thats you have to run from your mechine(you will see how do it in the next steps) this what runs all the updates and recovery logic,<strong>don't use  more than 1 engine</strong>, it was designed to work as a single process and knows from where to continue after restart, crash  so don't try to do auto-scaling or set 2 containers for high availability 
+1.The engine <b>(there should only be one)</b> - a nodejs server appliaction thats you have to run from your machine(you will see how do it in the next steps). The engine runs all the updates and recovery logic. <strong>Don't use  more than 1 engine</strong>, it was designed to work as a single process. It knows from where to continue after a restart/crash. Don't try auto-scaling or set 2 containers for high availability. 
 
-2. The SDK - responsible for managing the database dependencies of your application,
+2. The SDK - responsible for managing the database dependencies of your application. It connects your app with the engine.
 
 <h2>Instructions</h2>
 
-The Instructions will address the 2 parts separately,
- 
- the engine that runs the logic.
- 
- the SDK that runs the communication between your app and the server 
+The Instructions will address the 2 parts separately: the engine and the SDK.
 
-<h4>Engine</h4>
+<h4>The engine</h4>
 
 Run  
 
@@ -71,7 +67,7 @@ Run
 npm install mongodb-data-sync -g
 ```
  
-Then in the cmd run
+Then, in the cmd run
  
 ```
 mongodb-data-sync --key "some key" --url "mongodb connection url"
