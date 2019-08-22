@@ -16,7 +16,8 @@ const dependenciesSchema = {
 const syncSchema = {
 	...dependenciesSchema,
 	batchSize: Joi.number().required(),
-	last_id_checked: Joi.string().default(""),
+	last_id_checked: Joi.string().allow(null).default(null),
+	active: Joi.boolean().default(true)
 };
 
 exports.connect = async function (connectionString, connectionOptions = {}) {
@@ -40,6 +41,10 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 
 exports.validate = function (payload) {
 	return Joi.validate(payload, dependenciesSchema, {abortEarly: false});
+};
+
+exports.validateSync = function (payload) {
+	return Joi.validate(payload, syncSchema, {abortEarly: false});
 };
 exports.removeDependency = function (id) {
 	return dependenciesCollection.deleteOne({_id: new ObjectId(id)});
@@ -71,7 +76,7 @@ exports.removeSyncItem = function (id) {
 };
 
 exports.getNextSyncItem = function () {
-	return syncCollection.findOne();
+	return syncCollection.findOne({active: true});
 };
 
 exports.cleanSyncDatabase = function () {

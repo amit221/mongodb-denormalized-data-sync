@@ -5,3 +5,6 @@ const debug = function () {
 	console.log.apply(null, [...arguments]);
 };
 exports.debug = debug;
+
+exports.DUPLIACTE_CODE_ERROR = 11000;
+exports.RESUME_TOKEN_ERROR = 40585;

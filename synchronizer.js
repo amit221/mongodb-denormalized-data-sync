@@ -1,5 +1,5 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug} = require("./utils");
+const {debug, DUPLIACTE_CODE_ERROR} = require("./utils");
 const dependenciesMap = {};
 const referenceKeyProject = {};
 let pauseChangeStreamLoop = true;
@@ -56,7 +56,9 @@ const _buildDependenciesMap = async function () {
 			dependent_fields,
 			fields_format,
 			reference_key,
-			dependent_key
+			dependent_key,
+			reference_collection_last_update_field
+			
 		} = dependency);
 	});
 	debug("dependenciesMap:\n", JSON.stringify(dependenciesMap));
@@ -225,6 +227,48 @@ const _updateCollections = function (needToUpdateObj) {
 	return Promise.all(all);
 };
 
+const _syncDependencyFull = function () {
+
+};
+const __createSyncItems = async function (dbs, batchSize) {
+	for (const db in dependenciesMap) {
+		if (dbs && !dbs[db]) {
+			continue;
+		}
+		for (const referenceCollection in dependenciesMap[db]) {
+			for (const i in dependenciesMap[db][referenceCollection]) {
+				await _createSyncItem({...dependenciesMap[db][referenceCollection][i], batchSize});
+			}
+		}
+	}
+};
+const _createSyncItem = async function ({db_name, reference_collection, dependent_collection, dependent_fields, fields_format, reference_key, dependent_key, batchSize, last_id_checked}) {
+	const [error, value] = await synchronizerModel.validateSync({
+		db_name,
+		reference_collection,
+		dependent_collection,
+		dependent_fields,
+		fields_format,
+		reference_key,
+		dependent_key,
+		batchSize,
+		last_id_checked
+	});
+	if (error) {
+		console.error(error);
+		return;
+	}
+	try {
+		await synchronizerModel.addSyncItem(value);
+	} catch (e) {
+		if (e.code !== DUPLIACTE_CODE_ERROR) {
+			throw e;
+		}
+	}
+	
+	
+};
+
 exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
 	await _buildDependenciesMap();
@@ -275,18 +319,61 @@ exports.removeDependency = async function (id) {
 exports.showDependencies = function () {
 	return dependenciesMap;
 };
-// code: 40585,
 
-exports.syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = false}) {
-	for (const db in dependenciesMap) {
-		for (const referenceCollection in dependenciesMap[db]) {
-			dependenciesMap[db][referenceCollection];
+const _updateItemBatchResults = function ({syncItem, documents, dependentCollection}) {
+	const bulk = [];
+	
+	documents.forEach(doc => {
+		const payload = {};
+		for (let dependentField in syncItem.fields_format) {
+			payload[dependentField] = doc[syncItem.fields_format][dependentField];
 		}
-	}
-	Object.keys(dependenciesMap).forEach(db => {
-		Object.keys(dependenciesMap[db]).forEach(referenceCollection => {
-		
+		bulk.push({
+			updateOne: {
+				"filter": {[syncItem.dependent_key]: doc[syncItem.reference_key]},
+				"update": {$set: payload}
+			}
 		});
-		
 	});
+	dependentCollection.bulkWrite(bulk);
+};
+
+const _getSyncItemBatchResults = function ({syncItem, referenceCollection, ignoreLastUpdateField, fromDate}) {
+	const query = {};
+	if (syncItem.last_id_checked) {
+		query._id = {"$gt": syncItem.last_id_checked};
+	}
+	else if (ignoreLastUpdateField === false && syncItem.reference_collection_last_update_field && fromDate) {
+		query[syncItem.reference_collection_last_update_field] = {$gte: {fromDate}};
+	}
+	const projection = {
+		[syncItem.reference_key]: 1
+	};
+	syncItem.dependent_fields.forEach(field => {
+		projection[field] = 1;
+	});
+	return referenceCollection.find(query).limit(batchSize).project(projection);
+};
+const _syncItem = async function ({ignoreLastUpdateField, fromDate}) {
+	const syncItem = await synchronizerModel.getNextSyncItem();
+	const db = dbClient.db(syncItem.db_name);
+	const referenceCollection = db.collection(syncItem.reference_collection);
+	const dependentCollection = db.collection(syncItem.dependent_collection);
+	const documents = await _getSyncItemBatchResults({syncItem, referenceCollection, ignoreLastUpdateField, fromDate});
+	_updateSyncItemBatchResults({documents, syncItem, dependentCollection});
+};
+
+
+exports.syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false}) {
+	try {
+		//todo
+		//cleanOldSyncTasks
+		
+		await __createSyncItems(dbs, batchSize);
+		_syncItem({ignoreLastUpdateField, fromDate});
+		
+		
+	} catch (e) {
+		
+	}
 };
