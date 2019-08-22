@@ -12,11 +12,16 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 
 <h2>Core Features</h2>
-1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory.  
+1. It was designed to do all the synchronization with minimum overhead on the database and do most of the checks in memory. 
+
 2. It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStreams/'>Change Streams</a> in order to keep track about updates.  
+
 3. It has a plan A and B to recover after a crash.  
-4. It gives you an easy way to create dependncies with no worries of handling them.  
+
+4. It gives you an easy way to create dependncies with no worries of handling them. 
+
 5. After declaring Your dependncies you can retroactive sync your data.  
+
 
 
 <h2>Notice</h2>
