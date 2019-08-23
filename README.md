@@ -22,7 +22,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 <h2>Pros and cons of having duplicate data in multiple collection </h2>
 
-<h4>pros</h4>
+<h4>pros</h4>   
 1. you won't have to do joins.
 2. you can do index on all the fields.
 3. faster and easier searching and sorting
