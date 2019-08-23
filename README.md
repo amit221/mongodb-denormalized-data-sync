@@ -164,7 +164,7 @@ synchronizerClientInstance.addDependency({
    
     // the engine uses a resume-token to know from where to continue the change stream. 
     // in case you had a crash for a long time and the oplog doesn't have this token anymore the engine will start update all the dependencies from the begging,
-    // it recommended to supply an update field (if you have) so the engine will start sync only for dates after the crash 
+    // it is recommended to supply an update field (if you have) so the engine will start sync only for dates after the crash 
     refCollectionLastUpdateField:'last_update'
 
 });
