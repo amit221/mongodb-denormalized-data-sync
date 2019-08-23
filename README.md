@@ -181,6 +181,7 @@ return Promise with the id of the Dependency
 // deletes a dependency using the id ou got from creating a dependency 
 synchronizerClientInstance.removeDependency(id);
 ```
+return Promise 
 
 <strong>getDependencies</strong>
 
@@ -189,9 +190,6 @@ synchronizerClientInstance.removeDependency(id);
 synchronizerClientInstance.getDependencies();
 
 ```
-//return Promise with all your database dependencies 
 
-
-
-return Promise
+return Promise with all your database dependencies 
 
