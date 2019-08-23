@@ -97,7 +97,7 @@ You can look at the <a target='_blank' href='https://github.com/amit221/mongodb-
 <h5>Install</h5>
 
 ```
-npm install mongodb-data-sync -save
+npm install mongodb-data-sync --save
 ```
 
 <strong>init</strong>
