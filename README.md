@@ -1,9 +1,9 @@
 <h1>mongodb-data-sync</h1>
 Duplicate data between multiple collections (<a href='https://en.wikipedia.org/wiki/Denormalization'>Denormalization</a>) is a common thing in MongoDB.
-It is efficient for searching, sorting and even fields projection.
+It is efficient for searching, sorting and field projection.
 
 Handling duplicate data is a pain,
-you will have to create jobs to sync the data, or update in place all the collections with the duplicated data.
+you will have to create jobs to sync the data or update in place all the collections with the duplicated data.
 
 mongodb-data-sync solves this problem. With mongodb-data-sync you declare the dependencies in a logical place, for instance, with the schemas). mongodb-data-sync takes care of syncing the data in almost real-time.   
 
@@ -18,9 +18,9 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 3. It has a plan A and B to recover after a crash.
 
-4. It gives you an easy way to create dependncies with no worries of handling them.
+4. It gives you an easy way to create dependencies with no worries of handling them.
 
-5. After declaring Your dependncies you can retroactive sync your data.
+5. After declaring Your dependencies you can retroactively sync your data.
 
 
 
@@ -38,7 +38,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 <h4>Cons</h4>
 
 1. More storage usage.
-2. Hard to maintain: Need to keep track all the connections (this is what mongodb-data-sync comes to solve).
+2. Hard to maintain: Need to keep track of all the connections (this is what mongodb-data-sync comes to solve).
 3. Add write operations, every update will have to update multiple collections  
 
 <h2>Requirements</h2>
@@ -51,7 +51,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 mongodb-data-sync built from 2 separate parts.
 
-1. The engine <b>(there should only be one)</b> - a nodejs server appliaction thats you have to run from your machine(you will see how do it in the next steps). The engine runs all the updates and recovery logic. <strong>Don't use  more than 1 engine</strong>, it was designed to work as a single process. It knows from where to continue after a restart/crash. Don't try auto-scaling or set 2 containers for high availability. 
+1. The engine <b>(there should only be one)</b> - a nodejs server application that's you have to run from your machine(you will see how to do it in the next steps). The engine runs all the updates and recovery logic. <strong>Don't use more than 1 engine</strong>, it was designed to work as a single process. It knows where to continue after a restart/crash. Don't try auto-scaling or set 2 containers for high availability. 
 
 2. The SDK - responsible for managing the database dependencies of your application. It connects your app with the engine.
 
@@ -81,7 +81,7 @@ Options:
   
   -d, --dbname <dbname>  the database name for the package. (default: "mongodb_data_sync_db")
   
-  -k, --key <key>        api key to used for authentication of the sdk requests, required
+  -k, --key <key>        API key to use for authentication of the SDK requests, required
   
   -u, --url <url>        MongoDB connection url, required
   
