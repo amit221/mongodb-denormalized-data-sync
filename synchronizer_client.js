@@ -27,12 +27,12 @@ const _validateDependency = function ({dependentCollection, refCollection, local
 
 class SynchronizerClient {
 	
-	constructor(dbName, serviceUrl, apiKey) {
-		if (!dbName || !serviceUrl || !apiKey) {
-			throw new Error("dbName,serviceUrl and apiKey are required");
+	constructor(dbName, engineUrl, apiKey) {
+		if (!dbName || !engineUrl || !apiKey) {
+			throw new Error("dbName,engineUrl and apiKey are required");
 		}
 		this.dbName = dbName;
-		this.serviceUrl = serviceUrl;
+		this.engineUrl = engineUrl;
 		this.apiKey = apiKey;
 	}
 	
@@ -47,23 +47,23 @@ class SynchronizerClient {
 			refCollectionLastUpdateField
 		});
 		dependency.dbName = this.dbName;
-		return axios.post(this.serviceUrl + "/dependencies?api_key=" + this.apiKey, dependency);
+		return axios.post(this.engineUrl + "/dependencies?api_key=" + this.apiKey, dependency);
 	}
 	
 	removeDependency(id) {
-		return axios.delete(this.serviceUrl + "/dependencies/" + id + "?api_key=" + this.apiKey);
+		return axios.delete(this.engineUrl + "/dependencies/" + id + "?api_key=" + this.apiKey);
 	}
 	
 	getDependencies() {
-		return axios.get(this.serviceUrl + "/dependencies?api_key=" + this.apiKey);
+		return axios.get(this.engineUrl + "/dependencies?api_key=" + this.apiKey);
 	}
 }
 
-const init = function ({dbName, serviceUrl, apiKey}) {
+const init = function ({dbName, engineUrl, apiKey}) {
 	if (_synchronizerClientInstances[dbName]) {
 		return getInstance(dbName);
 	}
-	_synchronizerClientInstances[dbName] = new SynchronizerClient(dbName, serviceUrl, apiKey);
+	_synchronizerClientInstances[dbName] = new SynchronizerClient(dbName, engineUrl, apiKey);
 	return getInstance(dbName);
 };
 

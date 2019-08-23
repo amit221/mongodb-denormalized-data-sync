@@ -106,17 +106,31 @@ first initialize the client , do it as soon as possible in your app
 ```javascript
 const SynchronizerClient = require('mongodb-data-sync');
 
+// settings the communication between you app and the engine.
+// use this method the number of Database you want to work on
 SynchronizerClient.init({
-    dbName: String, // the DB name you want the synchronization to work on (required)
-    serviceUrl: String, // the URL for the server you run on the previous stage (required),  
-    apiKey: String, // this need to be the same key you declared in your server (required)
+
+    // your Database name the package should do the synchronization on (required)
+    dbName: 'mydb', 
+    
+    // the URL for package engine you run  (required),  
+    engineUrl: 'http://localhost:6500',
+   
+    //the authentication key you declared on the engine application (required)
+    apiKey: 'my cat is brown', 
 }); 
 ```
 returns a Promise
-
+//
 <strong>getInstance</strong>
 ```javascript
-const synchronizerClientInstance = SynchronizerClient.getInstance({dbName: String}); // return an instance related to your db(its not a mongodb db instance) for dependncies oprations  
+const synchronizerClientInstance = SynchronizerClient.getInstance({
+
+ // your Database name you want work on
+    dbName: 'mydb', 
+
+}); 
+// return an instance related to your db(its not a mongodb db instance) for dependencies operations  
 ````
 
 
@@ -124,14 +138,35 @@ const synchronizerClientInstance = SynchronizerClient.getInstance({dbName: Strin
 
 
 ```javascript
-
+// 'addDependency' allow you to declare a dependency between 2 collections
 synchronizerClientInstance.addDependency({
-   dependentCollection: String,// the dependent collection (required)
-   refCollection: String, //the referenced collection (required)
-   localField: String, // the dependent collection field to connect with (required)
-   foreignField:String , // the referenced collection field to connect with, default _id ,using other field then _id will cuz an extra join for each check (optional)
-   fieldsToSync: {}// the fields you want to update, the key is the field on the  dependentCollection and the value is for the refCollection
+   
+   // the dependent collection is the collection that need to get updated automatically  (required)
+   dependentCollection: 'orders',
+   
+   //the referenced collection is the collection that get updated from your application (required)
+   refCollection: 'users',
+   
+   // the dependent collection field to connect with (required)
+   localField: 'user_id',
+   
+   // the referenced collection field to connect with, default _id ,using other field then _id will cuz an extra join for each check (optional)
+   foreignField:"_id" , // default
+   
+   // an object represents the fields who need to be updated.
+   // the keys are the fields you want to be updated 
+   // the values are the fields you want to take the value from (required)
+   fieldsToSync: {
+       user_first_name:'first_name',
+       user_last_name:'last_name',
+       user_email:'email'
+   },
+   
+   //the engine uses a resumetoken in order to know from where to contiue the change stream. 
+   // in case you had a crash for a long time and the oplog dosont have this token anymore the engine will start update all the dependencies from the begging
+   refCollectionLastUpdateField:'last_update'
 });
+
 ```
 
 return Promise with the id of the Dependency 
