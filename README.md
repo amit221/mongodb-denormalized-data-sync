@@ -182,9 +182,11 @@ return Promise with the id of the Dependency
 synchronizerClientInstance.removeDependency(id);
 ```
 
+<strong>getDependencies</strong>
+
 ```javascript
 // used to get the database dependencies
-synchronizerClientInstance.getDependencies(id);
+synchronizerClientInstance.getDependencies();
 
 ```
 //return Promise with all your database dependencies 
