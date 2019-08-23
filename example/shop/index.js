@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 mongoose.connect(process.env.MONGODB_URL, {useNewUrlParser: true}).catch(console.error);
 SynchronizerClient.init({
 	dbName: process.env.MONGODB_DB_NAME,// the db name you want the synchronization to work on
-	serviceUrl: "http://localhost:6500", // the url for the server
+	engineUrl: "http://localhost:6500", // the url for the server
 	apiKey: "aaa"//this need to be the same key you declared in your server
 });
 const OrdersModel = require("./models/orders");
