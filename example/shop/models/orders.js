@@ -14,7 +14,7 @@ synchronizerClientInstance.addDependency({
 		email: "email"
 	}
 }).then((response) => {
-	console.log("id", response.data);
+	console.log("id", response);
 	
 }).catch(err => {
 	console.error(err.response.data);
@@ -27,7 +27,7 @@ synchronizerClientInstance.addDependency({
 		seller_name: "username",
 	}
 }).then((response) => {
-	console.log("id", response.data);
+	console.log("id", response);
 	
 }).catch(err => {
 	console.error(err.response.data);

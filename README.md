@@ -162,9 +162,11 @@ synchronizerClientInstance.addDependency({
        user_email:'email'
    },
    
-   //the engine uses a resumetoken in order to know from where to contiue the change stream. 
-   // in case you had a crash for a long time and the oplog dosont have this token anymore the engine will start update all the dependencies from the begging
-   refCollectionLastUpdateField:'last_update'
+    // the engine uses a resume-token to know from where to continue the change stream. 
+    // in case you had a crash for a long time and the oplog doesn't have this token anymore the engine will start update all the dependencies from the begging,
+    // it recommended to supply an update field (if you have) so the engine will start sync only for dates after the crash 
+    refCollectionLastUpdateField:'last_update'
+
 });
 
 ```
@@ -176,8 +178,18 @@ return Promise with the id of the Dependency
 
 
 ```javascript
+// deletes a dependency using the id ou got from creating a dependency 
 synchronizerClientInstance.removeDependency(id);
 ```
+
+```javascript
+// used to get the database dependencies
+synchronizerClientInstance.getDependencies(id);
+
+//return Promise with all your database dependencies 
+
+```
+
 
 return Promise
 

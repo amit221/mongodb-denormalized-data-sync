@@ -47,7 +47,8 @@ class SynchronizerClient {
 			refCollectionLastUpdateField
 		});
 		dependency.dbName = this.dbName;
-		return axios.post(this.engineUrl + "/dependencies?api_key=" + this.apiKey, dependency);
+		return axios.post(this.engineUrl + "/dependencies?api_key=" + this.apiKey, dependency).then(response => response.data);
+		;
 	}
 	
 	removeDependency(id) {
@@ -55,7 +56,11 @@ class SynchronizerClient {
 	}
 	
 	getDependencies() {
-		return axios.get(this.engineUrl + "/dependencies?api_key=" + this.apiKey);
+		return axios.get(this.engineUrl + "/dependencies?api_key=" + this.apiKey).then(response => response.data);
+	}
+	
+	sync({batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false, retryDelay = 0}) {
+		return axios.post(this.engineUrl + "/sync?api_key=" + this.apiKey, {dbs: [this.dbName]}).then(response => response.data);
 	}
 }
 
