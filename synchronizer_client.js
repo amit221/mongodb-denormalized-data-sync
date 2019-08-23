@@ -58,7 +58,7 @@ class SynchronizerClient {
 	getDependencies() {
 		return axios.get(this.engineUrl + "/dependencies?api_key=" + this.apiKey).then(response => response.data);
 	}
-	
+	//todo
 	sync({batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false, retryDelay = 0}) {
 		return axios.post(this.engineUrl + "/sync?api_key=" + this.apiKey, {dbs: [this.dbName]}).then(response => response.data);
 	}
