@@ -242,7 +242,7 @@ const _updateCollections = function (needToUpdateObj) {
 			Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 				debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 				all.push(
-					collection.updateOne({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
+					collection.updateMany({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
 				);
 			});
 			
@@ -353,7 +353,7 @@ const _updateSyncItemBatchResults = function ({syncItem, documents, dependentCol
 			payload[dependentField] = doc[syncItem.fields_format][dependentField];
 		}
 		bulk.push({
-			updateOne: {
+			updateMany: {
 				"filter": {[syncItem.dependent_key]: doc[syncItem.reference_key]},
 				"update": {$set: payload}
 			}
