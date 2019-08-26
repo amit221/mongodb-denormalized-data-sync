@@ -168,7 +168,6 @@ const _changeStreamLoop = async function () {
 	}
 	let next;
 	try {
-		await changeStream.hasNext();
 		next = await changeStream.next();
 		
 	} catch (e) {
@@ -254,7 +253,7 @@ const _updateCollections = function (needToUpdateObj) {
 const _syncDependencyFull = function () {
 
 };
-const __createSyncItems = async function (dbs, batchSize) {
+const _createSyncItems = async function (dbs, batchSize) {
 	for (const db in dependenciesMap) {
 		if (dbs && !dbs[db]) {
 			continue;
@@ -418,7 +417,7 @@ const syncAll = async function ({dbs, batchSize = 500, ignoreLastUpdateField = f
 	if (cleanOldSyncTasks === true) {
 		await synchronizerModel.cleanSyncDatabase();
 	}
-	await __createSyncItems(dbs, batchSize);
+	await _createSyncItems(dbs, batchSize);
 	await _syncItems({ignoreLastUpdateField, fromDate, retryDelay});
 	
 };
