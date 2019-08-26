@@ -1,6 +1,6 @@
 {
   "name": "mongodb-data-sync",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "responsible of synchronizing duplicate data between collections",
   "main": "synchronizer_client.js",
   "dependencies": {
@@ -11,7 +11,8 @@
     "express": "^4.17.1",
     "helmet": "^3.20.0",
     "method-override": "^3.0.0",
-    "mongodb": "^3.2.7"
+    "mongodb": "^3.2.7",
+    "console-from": "^1.0.12"
   },
   "bin": {
     "mongodb-data-sync": "./synchronizer_server.js"
@@ -31,8 +32,5 @@
   "bugs": {
     "url": "https://github.com/amit221/mongodb-denormalized-data-sync/issues"
   },
-  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme",
-  "devDependencies": {
-    "console-from": "^1.0.12"
-  }
+  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme"
 }
