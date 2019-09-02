@@ -57,24 +57,36 @@ const _initChangeStream = async function () {
 
 const _buildDependenciesMap = async function () {
 	const dependencies = await synchronizerModel.getDependencies();
+	
+	
 	dependencies.forEach(dependency => {
-		if (!dependenciesMap[dependency.db_name]) {
-			dependenciesMap[dependency.db_name] = {};
-		}
-		if (!dependenciesMap[dependency.db_name][dependency.reference_collection]) {
-			dependenciesMap[dependency.db_name][dependency.reference_collection] = [];
-		}
+		dependenciesMap[dependency.db_name] = dependenciesMap[dependency.db_name] || {};
+		dependenciesMap[dependency.db_name][dependency.reference_collection] = dependenciesMap[dependency.db_name][dependency.reference_collection] || [];
+		dependenciesMap[dependency.db_name][dependency.dependent_collection] = dependenciesMap[dependency.db_name][dependency.dependent_collection] || [];
+		
 		referenceKeyProject[dependency.reference_key] = 1;
+		
 		dependenciesMap[dependency.db_name][dependency.reference_collection].push({
-			_id,
-			dependent_collection,
-			dependent_fields,
-			fields_format,
-			reference_key,
-			dependent_key,
-			reference_collection_last_update_field
+			_id: dependency._id,
+			type: "ref",
+			dependent_collection: dependency.dependent_collection,
+			dependent_fields: dependency.dependent_fields,
+			fields_format: dependency.fields_format,
+			reference_key: dependency.reference_key,
+			dependent_key: dependency.dependent_key,
+			reference_collection_last_update_field: dependency.reference_collection_last_update_field
 			
-		} = dependency);
+		});
+		dependenciesMap[dependency.db_name][dependency.dependent_collection].push({
+			_id: dependency._id,
+			type: "local",
+			fetch_from_collection: dependency.reference_collection,
+			local_collection: dependency.dependent_collection,
+			fields_format: dependency.fields_format,
+			fetch_from_key: dependency.reference_key,
+			local_key: dependency.dependent_key,
+			
+		});
 	});
 	debug("dependenciesMap:\n", JSON.stringify(dependenciesMap));
 	
@@ -95,7 +107,8 @@ const _checkIfNeedToUpdate = function (dependency) {
 		return id;
 	}
 	dependenciesMap[dependency.db_name][dependency.reference_collection].some(currentDependency => {
-		if (currentDependency.reference_key !== dependency.reference_key ||
+		if (currentDependency.type === "local" ||
+			currentDependency.reference_key !== dependency.reference_key ||
 			currentDependency.dependent_key !== dependency.dependent_key ||
 			JSON.stringify(currentDependency.dependent_fields) !== JSON.stringify(dependency.dependent_fields)
 		) {
@@ -160,7 +173,6 @@ const _buildPipeline = function () {
 	return {pipeline, fullDocument};
 };
 
-
 const _changeStreamLoop = async function () {
 	if (pauseChangeStreamLoop === true) {
 		await _sleep(500);
@@ -194,15 +206,17 @@ const _changeStreamLoop = async function () {
 	}
 };
 
-const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescription, fullDocument}) {
+const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDescription, fullDocument}) {
 	const needToUpdateObj = {};
 	if (!dependenciesMap[ns.db] ||
 		!dependenciesMap[ns.db][ns.coll]
 	) {
 		return;
 	}
+	
 	const changedFields = updateDescription.updatedFields;
-	dependenciesMap[ns.db][ns.coll].forEach(dependency => {
+	
+	const addRefDep = (dependency) => {
 		if (dependency.dependent_fields.some(field => changedFields[field]) === false) {
 			return;
 		}
@@ -211,22 +225,47 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 			if (changedFields[dependency.fields_format[dependentField]] === undefined) {
 				return;
 			}
-			if (!needToUpdateObj[ns.db]) {
-				needToUpdateObj[ns.db] = {};
-			}
-			if (!needToUpdateObj[ns.db][dependency.dependent_collection]) {
-				needToUpdateObj[ns.db][dependency.dependent_collection] = {
-					refKey,
-					dependentKeys: {}
-				};
-			}
+			needToUpdateObj[ns.db] = needToUpdateObj[ns.db] || {};
+			
+			needToUpdateObj[ns.db][dependency.dependent_collection] = needToUpdateObj[ns.db][dependency.dependent_collection] || {
+				refKey,
+				dependentKeys: {}
+			};
 			if (!needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key]) {
 				needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key] = {};
 			}
 			
 			needToUpdateObj[ns.db][dependency.dependent_collection].dependentKeys[dependency.dependent_key][dependentField] = changedFields[dependency.fields_format[dependentField]];
 		});
-	});
+	};
+	const addLocalDep = async (dbName, dependency) => {
+		if (changedFields[dependency.local_key] === undefined) {
+			return;
+		}
+		const db = dbClient.db(dbName);
+		const collection = db.collection(dependency.fetch_from_collection);
+		
+		const projection = {};
+		Object.keys(dependency.fields_format).forEach(dependentField => {
+			projection[dependency.fields_format[dependentField]] = 1;
+		});
+		const fetchResult = await collection.findOne({[dependency.fetch_from_key]: changedFields[dependency.local_key]}, {projection});
+		
+		needToUpdateObj[ns.db] = needToUpdateObj[ns.db] || {};
+		needToUpdateObj[ns.db][dependency.local_collection] = needToUpdateObj[ns.db][dependency.local_collection] || {
+			_id: documentKey._id,
+			localKeys: {}
+		};
+		
+		Object.keys(dependency.fields_format).forEach(dependentField => {
+			needToUpdateObj[ns.db][dependency.local_collection].localKeys[dependentField] = fetchResult[dependency.fields_format[dependentField]];
+		});
+	};
+	for (let i in dependenciesMap[ns.db][ns.coll]) {
+		addRefDep(dependenciesMap[ns.db][ns.coll][i]);
+		await addLocalDep(ns.db, dependenciesMap[ns.db][ns.coll][i]);
+	}
+	
 	debug("needToUpdateObj:\n", JSON.stringify(needToUpdateObj));
 	return needToUpdateObj;
 };
@@ -234,25 +273,31 @@ const _getNeedToUpdateDependencies = function ({ns, documentKey, updateDescripti
 
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
+	const updateFromRefs = (dbName,collName,db, collection,) => {
+		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
+			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
+			all.push(
+				collection.updateMany({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
+			);
+		});
+	};
+	const updateFromLocals = (dbName,collName,db, collection,) => {
+		debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].localKeys}));
+		all.push(
+			collection.updateOne({_id: needToUpdateObj[dbName][collName]._id}, {$set: {...needToUpdateObj[dbName][collName].localKeys}})
+		);
+	};
 	Object.keys(needToUpdateObj).forEach(dbName => {
 		const db = dbClient.db(dbName);
 		Object.keys(needToUpdateObj[dbName]).forEach(collName => {
 			const collection = db.collection(collName);
-			Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
-				debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
-				all.push(
-					collection.updateMany({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
-				);
-			});
-			
+			updateFromRefs(dbName, collName, db, collection);
+			updateFromLocals(dbName, collName, db, collection);
 		});
 	});
 	return Promise.all(all);
 };
 
-const _syncDependencyFull = function () {
-
-};
 const _createSyncItems = async function (dbs, batchSize) {
 	for (const db in dependenciesMap) {
 		if (dbs && !dbs[db]) {
@@ -296,7 +341,7 @@ exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
 	await _buildDependenciesMap();
 	await _initChangeStream();
-	await _changeStreamLoop(changeStream);
+	_changeStreamLoop(changeStream);
 };
 
 exports.addDependency = async function (body) {

@@ -14,6 +14,9 @@
     "mongodb": "^3.2.7",
     "console-from": "^1.0.12"
   },
+  "scripts": {
+    "test": "mocha --timeout 4000 --watch"
+  },
   "bin": {
     "mongodb-data-sync": "./synchronizer_server.js"
   },
@@ -32,5 +35,9 @@
   "bugs": {
     "url": "https://github.com/amit221/mongodb-denormalized-data-sync/issues"
   },
-  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme"
+  "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme",
+  "devDependencies": {
+    "mocha": "^6.2.0",
+    "chai": "^4.1.2"
+  }
 }
