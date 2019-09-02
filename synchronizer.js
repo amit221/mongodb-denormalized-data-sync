@@ -14,6 +14,7 @@ const _sleep = (time) => {
 	});
 };
 
+
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
 		changeStream = undefined;
@@ -60,6 +61,7 @@ const _buildDependenciesMap = async function () {
 	
 	
 	dependencies.forEach(dependency => {
+		dependency.fields_format = JSON.parse(dependency.fields_format);
 		dependenciesMap[dependency.db_name] = dependenciesMap[dependency.db_name] || {};
 		dependenciesMap[dependency.db_name][dependency.reference_collection] = dependenciesMap[dependency.db_name][dependency.reference_collection] || [];
 		dependenciesMap[dependency.db_name][dependency.dependent_collection] = dependenciesMap[dependency.db_name][dependency.dependent_collection] || [];
@@ -273,7 +275,7 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
-	const updateFromRefs = (dbName,collName,db, collection,) => {
+	const updateFromRefs = (dbName, collName, db, collection,) => {
 		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 			all.push(
@@ -281,7 +283,7 @@ const _updateCollections = function (needToUpdateObj) {
 			);
 		});
 	};
-	const updateFromLocals = (dbName,collName,db, collection,) => {
+	const updateFromLocals = (dbName, collName, db, collection,) => {
 		debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].localKeys}));
 		all.push(
 			collection.updateOne({_id: needToUpdateObj[dbName][collName]._id}, {$set: {...needToUpdateObj[dbName][collName].localKeys}})
@@ -351,7 +353,7 @@ exports.addDependency = async function (body) {
 		dependent_collection: body.dependentCollection,
 		reference_key: body.foreignField,
 		dependent_key: body.localField,
-		fields_format: body.fieldsToSync,
+		fields_format: JSON.stringify(body.fieldsToSync),
 		dependent_fields: _extractFields(body.fieldsToSync),
 		reference_collection_last_update_field: body.refCollectionLastUpdateField
 	};
@@ -366,6 +368,7 @@ exports.addDependency = async function (body) {
 	}
 	
 	_checkConflict(value);
+	value.fields_format = JSON.stringify(body.fieldsToSync);
 	const result = await synchronizerModel.addDependency(value);
 	await _buildDependenciesMap();
 	await _initChangeStream();

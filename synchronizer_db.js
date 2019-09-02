@@ -85,6 +85,15 @@ exports.getNextSyncItem = function () {
 exports.cleanSyncDatabase = function () {
 	return syncCollection.removeMany();
 };
+exports.closeConnection = async function () {
+	if (client) {
+		return client.close().catch(console.error);
+	}
+};
+
+exports.dropDb = function () {
+	return db.dropDatabase();
+};
 
 process.stdin.resume();
 const exitHandler = async (options) => {
@@ -96,6 +105,7 @@ const exitHandler = async (options) => {
 		
 	}
 };
+
 
 process.on("exit", exitHandler.bind(null, {}));
 process.on("SIGTERM", exitHandler.bind(null, {exit: true}));
