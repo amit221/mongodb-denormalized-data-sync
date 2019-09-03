@@ -1,22 +1,14 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
+const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR, sleep} = require("./utils");
 const dependenciesMap = {};
 const referenceKeyProject = {};
-let pauseChangeStreamLoop = true;
 let changeStream;
 let dbClient;
-
-const _sleep = (time) => {
-	return new Promise(resolve => {
-		setTimeout(() => {
-			resolve();
-		}, time);
-	});
-};
 
 
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
+		console.error(err);
 		changeStream = undefined;
 		const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
 		await synchronizerModel.removeResumeToken();
@@ -28,33 +20,31 @@ const _removeResumeTokenAndInit = async function (err) {
 };
 
 const _initChangeStream = async function () {
-	pauseChangeStreamLoop = true;
-	
 	if (changeStream) {
 		await changeStream.close();
-		changeStream = null;
 	}
-	
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let {pipeline, fullDocument} = _buildPipeline();
 	fullDocument = fullDocument ? "updateLookup" : undefined;
-	
+	console.log(pipeline, resumeAfter);
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
 	
 	changeStream = dbClient.watch(pipeline, {resumeAfter, fullDocument});
+	changeStream.on("change", next => {
+		_changeStreamLoop(next);
+	});
 	changeStream.on("error", async err => {
 		if (await _removeResumeTokenAndInit(err) === true) {
 			console.error(err);
 			process.exit();
 		}
-		
 	});
-	pauseChangeStreamLoop = false;
-	
+	console.log("changeStream 1", !!changeStream);
 };
+
 
 const _buildDependenciesMap = async function () {
 	const dependencies = await synchronizerModel.getDependencies();
@@ -175,37 +165,28 @@ const _buildPipeline = function () {
 	return {pipeline, fullDocument};
 };
 
-const _changeStreamLoop = async function () {
-	if (pauseChangeStreamLoop === true) {
-		await _sleep(500);
-		return _changeStreamLoop();
-	}
-	let next;
-	try {
-		next = await changeStream.next();
-		
-	} catch (e) {
-		if (await _removeResumeTokenAndInit(e) === true) {
-			throw e;
-		}
-	}
+const _changeStreamLoop = async function (next) {
+	
+	
 	if (!next || !next._id) {
 		return;
 	}
 	try {
-		const needToUpdateObj = _getNeedToUpdateDependencies(next);
+		const needToUpdateObj = await _getNeedToUpdateDependencies(next);
+		
 		if (Object.keys(needToUpdateObj).length === 0) {
-			return _changeStreamLoop();
-			
+			return;
 		}
+		console.log(next._id)
 		await synchronizerModel.addResumeToken({token: next._id});
+		
 		await _updateCollections(needToUpdateObj);
 		
-		return _changeStreamLoop();
 	} catch (e) {
 		console.error(e);
-		return _changeStreamLoop();
 	}
+	
+	
 };
 
 const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDescription, fullDocument}) {
@@ -219,7 +200,7 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 	const changedFields = updateDescription.updatedFields;
 	
 	const addRefDep = (dependency) => {
-		if (dependency.dependent_fields.some(field => changedFields[field]) === false) {
+		if (dependency.type !== "ref" || dependency.dependent_fields.some(field => changedFields[field]) === false) {
 			return;
 		}
 		const refKey = dependency.reference_key === "_id" ? documentKey._id : fullDocument[dependency.reference_key];
@@ -241,7 +222,7 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 		});
 	};
 	const addLocalDep = async (dbName, dependency) => {
-		if (changedFields[dependency.local_key] === undefined) {
+		if (dependency.type !== "local" || changedFields[dependency.local_key] === undefined) {
 			return;
 		}
 		const db = dbClient.db(dbName);
@@ -275,7 +256,13 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
+	
 	const updateFromRefs = (dbName, collName, db, collection,) => {
+		if (!needToUpdateObj[dbName][collName].dependentKeys) {
+			return;
+		}
+		console.log("(needToUpdateObj[dbName][collName].dependentKeys", (needToUpdateObj[dbName][collName].dependentKeys));
+		
 		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 			all.push(
@@ -283,7 +270,12 @@ const _updateCollections = function (needToUpdateObj) {
 			);
 		});
 	};
+	
+	
 	const updateFromLocals = (dbName, collName, db, collection,) => {
+		if (!needToUpdateObj[dbName][collName].localKeys) {
+			return;
+		}
 		debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].localKeys}));
 		all.push(
 			collection.updateOne({_id: needToUpdateObj[dbName][collName]._id}, {$set: {...needToUpdateObj[dbName][collName].localKeys}})
@@ -343,7 +335,7 @@ exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
 	await _buildDependenciesMap();
 	await _initChangeStream();
-	_changeStreamLoop(changeStream);
+	console.log("changestream", !!changeStream);
 };
 
 exports.addDependency = async function (body) {

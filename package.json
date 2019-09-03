@@ -15,7 +15,7 @@
     "console-from": "^1.0.12"
   },
   "scripts": {
-    "test": "mocha --timeout 4000 --watch"
+    "test": "mocha --timeout 4000 "
   },
   "bin": {
     "mongodb-data-sync": "./synchronizer_server.js"
