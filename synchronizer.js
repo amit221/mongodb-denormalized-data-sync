@@ -8,7 +8,6 @@ let dbClient;
 
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
-		console.error(err);
 		changeStream = undefined;
 		const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
 		await synchronizerModel.removeResumeToken();
@@ -27,7 +26,6 @@ const _initChangeStream = async function () {
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let {pipeline, fullDocument} = _buildPipeline();
 	fullDocument = fullDocument ? "updateLookup" : undefined;
-	console.log(pipeline, resumeAfter);
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
@@ -42,7 +40,6 @@ const _initChangeStream = async function () {
 			process.exit();
 		}
 	});
-	console.log("changeStream 1", !!changeStream);
 };
 
 
@@ -177,7 +174,6 @@ const _changeStreamLoop = async function (next) {
 		if (Object.keys(needToUpdateObj).length === 0) {
 			return;
 		}
-		console.log(next._id)
 		await synchronizerModel.addResumeToken({token: next._id});
 		
 		await _updateCollections(needToUpdateObj);
@@ -261,8 +257,6 @@ const _updateCollections = function (needToUpdateObj) {
 		if (!needToUpdateObj[dbName][collName].dependentKeys) {
 			return;
 		}
-		console.log("(needToUpdateObj[dbName][collName].dependentKeys", (needToUpdateObj[dbName][collName].dependentKeys));
-		
 		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 			all.push(
@@ -335,7 +329,6 @@ exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
 	await _buildDependenciesMap();
 	await _initChangeStream();
-	console.log("changestream", !!changeStream);
 };
 
 exports.addDependency = async function (body) {
