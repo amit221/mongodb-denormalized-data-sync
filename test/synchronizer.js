@@ -19,7 +19,7 @@ const dataDb = process.env.MONGODB_DATA_SYNC_DB + "_data";
 const synchronizer = require("../synchronizer");
 const synchronizerModel = require("../synchronizer_db");
 
-let dbClient, db, camp1Id2;
+let dbClient, db, camp1Id, camp1Id2;
 describe("synchronizer", () => {
 	before(async function () {
 		
@@ -28,7 +28,7 @@ describe("synchronizer", () => {
 		db = dbClient.db(dataDb);
 		await db.dropDatabase();
 		
-		const camp1Id = await db.collection("campaigns").insertOne({name: "camp 1"}).then(result => result.insertedId);
+		camp1Id = await db.collection("campaigns").insertOne({name: "camp 1"}).then(result => result.insertedId);
 		camp1Id2 = await db.collection("campaigns").insertOne({name: "camp 2"}).then(result => result.insertedId);
 		
 		await db.collection("orders").insertOne({
@@ -143,20 +143,33 @@ describe("synchronizer", () => {
 			expect(order.campaign.name).to.be.equal("camp 1 changed");
 		});
 		it("checks 1 to many dependency", async () => {
-			const result = await db.collection("campaigns").updateOne({name: "camp 1"}, {$set: {name: "camp 1 changed"}});
-			await sleep(1000);
+			await db.collection("campaigns").updateOne({name: "camp 1"}, {$set: {name: "camp 1 changed"}});
+			await sleep(500);
 			const orders = await db.collection("orders").find({"campaign.name": "camp 1 changed"}).toArray();
 			
 			expect(orders.length).to.be.equal(2);
 		});
 		
 		it("checks local dependency change", async () => {
-			const result = await db.collection("orders").updateOne({}, {$set: {"campaign._id": camp1Id2}});
-			await sleep(1000);
+			await db.collection("orders").updateOne({name: "order 1"}, {$set: {"campaign._id": camp1Id2}});
+			await sleep(500);
 			const orders = await db.collection("orders").findOne({"campaign._id": camp1Id2});
 			
 			expect(orders.campaign.name).to.be.equal("camp 2");
 		});
 	});
 	
+	describe("sync", () => {
+		it("checks sync old data", async () => {
+			await synchronizer.pause();
+			await db.collection("orders").updateOne({name: "order 1"}, {$set: {"campaign._id": camp1Id}});
+			await db.collection("orders").updateOne({name: "order 2"}, {$set: {"campaign._id": camp1Id2}});
+			let orders = await db.collection("orders").findOne({name: "order 1"});
+			expect(orders.campaign.name).to.be.equal("camp 2");
+			await synchronizer.syncAll({});
+			orders = await db.collection("orders").findOne({name: "order 1"});
+			expect(orders.campaign.name).to.be.equal("camp 1 changed");
+			await synchronizer.continue();
+		});
+	});
 });

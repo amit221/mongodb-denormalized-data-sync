@@ -293,13 +293,23 @@ const _createSyncItems = async function (dbs, batchSize) {
 		}
 		for (const referenceCollection in dependenciesMap[db]) {
 			for (const i in dependenciesMap[db][referenceCollection]) {
-				await _createSyncItem({...dependenciesMap[db][referenceCollection][i], batchSize});
+				if (dependenciesMap[db][referenceCollection][i].type !== "ref") {
+					return;
+				}
+				await _createSyncItem({
+					...dependenciesMap[db][referenceCollection][i],
+					reference_collection: referenceCollection,
+					batchSize,
+					db_name: db
+				});
 			}
 		}
 	}
 };
 const _createSyncItem = async function ({db_name, reference_collection, dependent_collection, dependent_fields, fields_format, reference_key, dependent_key, batchSize, last_id_checked}) {
-	const [error, value] = await synchronizerModel.validateSync({
+	
+	
+	const {error, value} = synchronizerModel.validateSync({
 		db_name,
 		reference_collection,
 		dependent_collection,
@@ -327,6 +337,13 @@ const _createSyncItem = async function ({db_name, reference_collection, dependen
 
 exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
+	await _buildDependenciesMap();
+	await _initChangeStream();
+};
+exports.pause = async function () {
+	await changeStream.close();
+};
+exports.continue = async function () {
 	await _buildDependenciesMap();
 	await _initChangeStream();
 };
@@ -377,12 +394,12 @@ exports.showDependencies = function () {
 };
 
 const _updateSyncItemBatchResults = function ({syncItem, documents, dependentCollection}) {
-	const bulk = [];
 	
+	const bulk = [];
 	documents.forEach(doc => {
 		const payload = {};
 		for (let dependentField in syncItem.fields_format) {
-			payload[dependentField] = doc[syncItem.fields_format][dependentField];
+			payload[dependentField] = doc[syncItem.fields_format[dependentField]];
 		}
 		bulk.push({
 			updateMany: {
@@ -390,9 +407,13 @@ const _updateSyncItemBatchResults = function ({syncItem, documents, dependentCol
 				"update": {$set: payload}
 			}
 		});
+		
 	});
 	debug("_updateSyncItemBatchResults", JSON.stringify(bulk));
+	
+	
 	return dependentCollection.bulkWrite(bulk);
+	
 };
 
 const _getSyncItemBatchResults = function ({syncItem, referenceCollection, ignoreLastUpdateField, fromDate}) {
@@ -409,7 +430,7 @@ const _getSyncItemBatchResults = function ({syncItem, referenceCollection, ignor
 	syncItem.dependent_fields.forEach(field => {
 		projection[field] = 1;
 	});
-	return referenceCollection.find(query).limit(batchSize).project(projection);
+	return referenceCollection.find(query).limit(syncItem.batchSize).project(projection).toArray();
 };
 const _syncItem = async function ({ignoreLastUpdateField, fromDate}) {
 	const syncItem = await synchronizerModel.getNextSyncItem();
@@ -420,12 +441,14 @@ const _syncItem = async function ({ignoreLastUpdateField, fromDate}) {
 	const referenceCollection = db.collection(syncItem.reference_collection);
 	const dependentCollection = db.collection(syncItem.dependent_collection);
 	const documents = await _getSyncItemBatchResults({syncItem, referenceCollection, ignoreLastUpdateField, fromDate});
-	const active = documents.length < batchSize;
+	
+	const active = !(documents.length < syncItem.batchSize);
 	if (documents.length === 0) {
 		synchronizerModel.updateSyncItem(syncItem._id, {active});
 		return null;
 	}
-	await _updateSyncItemBatchResults({documents, syncItem, dependentCollection});
+	
+	const result = await _updateSyncItemBatchResults({documents, syncItem, dependentCollection});
 	const lastId = documents[documents.length - 1]._id;
 	return synchronizerModel.updateSyncItem(syncItem._id, {last_id_checked: lastId, active});
 	
@@ -433,7 +456,6 @@ const _syncItem = async function ({ignoreLastUpdateField, fromDate}) {
 const _syncItems = async function ({ignoreLastUpdateField, fromDate, retryDelay}) {
 	try {
 		while (await _syncItem({ignoreLastUpdateField, fromDate})) {
-		
 		}
 	}
 	catch (e) {

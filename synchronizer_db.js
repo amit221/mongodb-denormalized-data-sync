@@ -72,14 +72,20 @@ exports.getResumeToken = function () {
 	return resumeTokenCollection.findOne();
 };
 exports.addSyncItem = function (payload) {
+	payload.fields_format = JSON.stringify(payload.fields_format);
 	return syncCollection.insertOne(payload);
 };
 exports.updateSyncItem = function (id, payload) {
-	return syncCollection.updateOne({id: new ObjectId(id)}, {$set: payload});
+	return syncCollection.updateOne({_id: new ObjectId(id)}, {$set: payload});
 };
 
 exports.getNextSyncItem = function () {
-	return syncCollection.findOne({active: true});
+	return syncCollection.findOne({active: true}).then(result => {
+		if (result) {
+			result.fields_format = JSON.parse(result.fields_format);
+		}
+		return result;
+	});
 };
 
 exports.cleanSyncDatabase = function () {
