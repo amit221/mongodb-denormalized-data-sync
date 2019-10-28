@@ -1,9 +1,12 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR, sleep} = require("./utils");
+const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
+const mysql = require("promise-mysql");
+
 const dependenciesMap = {};
 const referenceKeyProject = {};
 let changeStream;
 let dbClient;
+let mysqlConnection;
 
 
 const _removeResumeTokenAndInit = async function (err) {
@@ -253,10 +256,12 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
 	
-	const updateFromRefs = (dbName, collName, db, collection,) => {
+	const updateFromRefs = (dbName, collName) => {
 		if (!needToUpdateObj[dbName][collName].dependentKeys) {
 			return;
 		}
+		const db = dbClient.db(dbName);
+		const collection = db.collection(collName);
 		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 			all.push(
@@ -264,9 +269,35 @@ const _updateCollections = function (needToUpdateObj) {
 			);
 		});
 	};
+	const updateMysql = (dbName, tableNameWithPrefix) => {
+		const [mysqlPrefix, tableName] = tableNameWithPrefix.split(".");
+		if (mysqlPrefix !== "mysql") {
+			return;
+		}
+		
+		Object.keys(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys).forEach(dependentKey => {
+			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey]}));
+			const queryParams = [];
+			let query = `update ${tableName} set `;
+			Object.keys(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey]).forEach((value, key) => {
+				query += " `" + value + "` = ? ,";
+				queryParams.push(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey][value]);
+			});
+			query = query.substr(0, query.length - 1);
+			query += "where `" + dependentKey + "` = ?";
+			
+			queryParams.push(needToUpdateObj[dbName][tableNameWithPrefix].refKey.toString());
+			console.log(query, queryParams);
+			all.push(
+				mysqlConnection.query(query, queryParams)
+			);
+		});
+		
+	};
 	
-	
-	const updateFromLocals = (dbName, collName, db, collection,) => {
+	const updateFromLocals = (dbName, collName,) => {
+		const db = dbClient.db(dbName);
+		const collection = db.collection(collName);
 		if (!needToUpdateObj[dbName][collName].localKeys) {
 			return;
 		}
@@ -275,12 +306,12 @@ const _updateCollections = function (needToUpdateObj) {
 			collection.updateOne({_id: needToUpdateObj[dbName][collName]._id}, {$set: {...needToUpdateObj[dbName][collName].localKeys}})
 		);
 	};
+	
 	Object.keys(needToUpdateObj).forEach(dbName => {
-		const db = dbClient.db(dbName);
 		Object.keys(needToUpdateObj[dbName]).forEach(collName => {
-			const collection = db.collection(collName);
-			updateFromRefs(dbName, collName, db, collection);
-			updateFromLocals(dbName, collName, db, collection);
+			updateMysql(dbName, collName);
+			updateFromRefs(dbName, collName);
+			updateFromLocals(dbName, collName);
 		});
 	});
 	return Promise.all(all);
@@ -335,8 +366,19 @@ const _createSyncItem = async function ({db_name, reference_collection, dependen
 	
 };
 
+
+const _connectToMysql = async () => {
+	if (!process.env.MYSQL) {
+		return;
+	}
+	
+	const options = JSON.parse(process.env.MYSQL);
+	mysqlConnection = await mysql.createConnection(options);
+};
+
 exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
+	await _connectToMysql();
 	await _buildDependenciesMap();
 	await _initChangeStream();
 };

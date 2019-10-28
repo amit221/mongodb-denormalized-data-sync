@@ -8,11 +8,12 @@
     "axios": "^0.19.0",
     "body-parser": "^1.19.0",
     "commander": "^3.0.0",
+    "console-from": "^1.0.12",
     "express": "^4.17.1",
     "helmet": "^3.20.0",
     "method-override": "^3.0.0",
     "mongodb": "^3.2.7",
-    "console-from": "^1.0.12"
+    "promise-mysql": "^4.1.1"
   },
   "scripts": {
     "test": "mocha --timeout 4000 "

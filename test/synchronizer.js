@@ -1,12 +1,14 @@
 const expect = require("chai").expect;
 const mongodb = require("mongodb");
 const ObjectId = mongodb.ObjectId;
+const mysql = require("promise-mysql");
 const program = require("commander");
 const {sleep} = require("../utils");
 program
 	.option("-d, --dbname <dbname>", "the database name for the package.", "mongodb-data-sync-test-db-drop")
 	.option("-u, --url <url>", "MongoDB connection url, required")
 	.option("--de", "console log important information")
+	.option("--mysql <mysql>", "mysql connection")
 	.option(" --timeout <time>", "timeout", 5000);
 
 
@@ -14,11 +16,12 @@ program.parse(process.argv);
 process.env.MONGODB_DATA_SYNC_DB = program.dbname;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.de;
+process.env.MYSQL = program.mysql;
 
 const dataDb = process.env.MONGODB_DATA_SYNC_DB + "_data";
 const synchronizer = require("../synchronizer");
 const synchronizerModel = require("../synchronizer_db");
-
+let mysqlConnection;
 let dbClient, db, camp1Id, camp1Id2;
 describe("synchronizer", () => {
 	before(async function () {
@@ -26,7 +29,9 @@ describe("synchronizer", () => {
 		dbClient = await synchronizerModel.connect(process.env.MONGODB_URL);
 		synchronizerModel.dropDb();
 		db = dbClient.db(dataDb);
-		await db.dropDatabase();
+		await db.collection("campaigns").removeMany();
+		await db.collection("orders").removeMany();
+		await db.collection("users").removeMany();
 		
 		camp1Id = await db.collection("campaigns").insertOne({name: "camp 1"}).then(result => result.insertedId);
 		camp1Id2 = await db.collection("campaigns").insertOne({name: "camp 2"}).then(result => result.insertedId);
@@ -45,14 +50,64 @@ describe("synchronizer", () => {
 				name: "camp 1"
 			}
 		});
+		
+		await db.collection("users").insertOne({
+			name: "order 1",
+			campaign: {
+				_id: camp1Id,
+				name: "camp 1"
+			}
+		});
 	});
 	
+	before(async function () {
+		if (!process.env.MYSQL) {
+			return;
+		}
+		
+		const options = JSON.parse(process.env.MYSQL);
+		mysqlConnection = await mysql.createConnection(options);
+		await mysqlConnection.query("TRUNCATE TABLE `users`");
+		await mysqlConnection.query("INSERT INTO `users` SET ? ", {
+			campaign_id: camp1Id,
+			campaign_name: "camp 1"
+		},);
+		await mysqlConnection.query("INSERT INTO `users` SET ? ", {
+			campaign_id: camp1Id2,
+			campaign_name: "camp 2"
+		},);
+		
+		
+	});
 	
 	describe("start", () => {
-		it("connect to database and start the sync loop", async () => {
+		it.only("connect to database and start the sync loop", async () => {
 			await synchronizer.start();
 			
 		});
+	});
+	
+	describe("mysql dependency", async () => {
+		let id;
+		it.only("on success it need to return an id", async () => {
+			id = await synchronizer.addDependency({
+				dbName: dataDb,
+				refCollection: "campaigns",
+				dependentCollection: "mysql.users",
+				foreignField: "_id",
+				localField: "campaign_id",
+				fieldsToSync: {"campaign_name": "name"},
+			});
+			expect(id).to.be.an.instanceof(ObjectId);
+		});
+		
+		it.only("checks 1 to 1 dependency", async () => {
+			await db.collection("campaigns").updateOne({name: "camp 1"}, {$set: {name: "camp 1 changed"}});
+			await sleep(1000);
+			const result = await mysqlConnection.query("select * from users where id = 1 ");
+			expect(result[0].campaign_name).to.be.equal("camp 1 changed");
+		});
+		
 	});
 	
 	describe("addDependency", async () => {
@@ -95,6 +150,7 @@ describe("synchronizer", () => {
 			}
 		});
 	});
+	
 	
 	describe("showDependencies", () => {
 		it("checks that the dependency has all the fields correctly", async () => {

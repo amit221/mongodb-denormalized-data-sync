@@ -7,6 +7,7 @@ program
 	.option("-p, --port <port>", "server port.", 6500)
 	.option("-d, --dbname <dbname>", "the database name for the package.", "mongodb_data_sync_db")
 	.option("-k, --key <key>", "api key to used for authentication of the sdk requests, required ")
+	.option("--mysql <mysql>", "mysql connection")
 	.option("-u, --url <url>", "MongoDB connection url, required");
 
 
@@ -16,6 +17,8 @@ process.env.MONGODB_DATA_SYNC_DB = program.dbname;
 process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
+process.env.MYSQL = program.mysql;
+
 if (program.debug) {
 	require("console-from");
 }
