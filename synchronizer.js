@@ -1,8 +1,8 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
+const {debug, getObjectPropFromString, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
 const mysql = require("promise-mysql");
-
-const dependenciesMap = {};
+const {ObjectId} = require("mongodb");
+let dependenciesMap = {};
 const referenceKeyProject = {};
 let changeStream;
 let dbClient;
@@ -48,8 +48,7 @@ const _initChangeStream = async function () {
 
 const _buildDependenciesMap = async function () {
 	const dependencies = await synchronizerModel.getDependencies();
-	
-	
+	dependenciesMap = {};
 	dependencies.forEach(dependency => {
 		dependency.fields_format = JSON.parse(dependency.fields_format);
 		dependenciesMap[dependency.db_name] = dependenciesMap[dependency.db_name] || {};
@@ -69,6 +68,9 @@ const _buildDependenciesMap = async function () {
 			reference_collection_last_update_field: dependency.reference_collection_last_update_field
 			
 		});
+		if (dependency.dependent_collection.split(".")[0] === "mysql") {
+			return;
+		}
 		dependenciesMap[dependency.db_name][dependency.dependent_collection].push({
 			_id: dependency._id,
 			type: "local",
@@ -94,7 +96,10 @@ const _extractFields = function (fieldsToSync) {
 const _checkIfNeedToUpdate = function (dependency) {
 	let id = "new";
 	if (!dependenciesMap[dependency.db_name] ||
-		!dependenciesMap[dependency.db_name][dependency.reference_collection]
+		!dependenciesMap[dependency.db_name][dependency.reference_collection] ||
+		dependenciesMap[dependency.db_name][dependency.reference_collection] && !dependenciesMap[dependency.db_name][dependency.reference_collection].some(dep => {
+			return dependency.dependent_collection === dep.dependent_collection;
+		})
 	) {
 		return id;
 	}
@@ -106,9 +111,10 @@ const _checkIfNeedToUpdate = function (dependency) {
 		) {
 			return false;
 		}
-		id = currentDependency._id;
-		return true;
-		
+		if (dependency.dependent_collection === currentDependency.dependent_collection) {
+			id = currentDependency._id;
+			return true;
+		}
 	});
 	
 	return id;
@@ -117,7 +123,8 @@ const _checkIfNeedToUpdate = function (dependency) {
 
 const _checkConflict = function (dependency) {
 	if (!dependenciesMap[dependency.db_name] ||
-		!dependenciesMap[dependency.db_name][dependency.dependent_collection]
+		!dependenciesMap[dependency.db_name][dependency.dependent_collection] ||
+		!dependenciesMap[dependency.db_name][dependency.reference_collection]
 	) {
 		return;
 	}
@@ -221,6 +228,8 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 		});
 	};
 	const addLocalDep = async (dbName, dependency) => {
+		
+		
 		if (dependency.type !== "local" || changedFields[dependency.local_key] === undefined) {
 			return;
 		}
@@ -255,14 +264,15 @@ const _getNeedToUpdateDependencies = async function ({ns, documentKey, updateDes
 
 const _updateCollections = function (needToUpdateObj) {
 	const all = [];
-	
 	const updateFromRefs = (dbName, collName) => {
-		if (!needToUpdateObj[dbName][collName].dependentKeys) {
+		if (!needToUpdateObj[dbName][collName].dependentKeys || collName.split(".")[1]) {
 			return;
 		}
+		
 		const db = dbClient.db(dbName);
 		const collection = db.collection(collName);
 		Object.keys(needToUpdateObj[dbName][collName].dependentKeys).forEach(dependentKey => {
+			
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}));
 			all.push(
 				collection.updateMany({[dependentKey]: needToUpdateObj[dbName][collName].refKey}, {$set: {...needToUpdateObj[dbName][collName].dependentKeys[dependentKey]}})
@@ -287,7 +297,6 @@ const _updateCollections = function (needToUpdateObj) {
 			query += "where `" + dependentKey + "` = ?";
 			
 			queryParams.push(needToUpdateObj[dbName][tableNameWithPrefix].refKey.toString());
-			console.log(query, queryParams);
 			all.push(
 				mysqlConnection.query(query, queryParams)
 			);
@@ -296,11 +305,12 @@ const _updateCollections = function (needToUpdateObj) {
 	};
 	
 	const updateFromLocals = (dbName, collName,) => {
-		const db = dbClient.db(dbName);
-		const collection = db.collection(collName);
-		if (!needToUpdateObj[dbName][collName].localKeys) {
+		
+		if (!needToUpdateObj[dbName][collName].localKeys || collName.split(".")[1]) {
 			return;
 		}
+		const db = dbClient.db(dbName);
+		const collection = db.collection(collName);
 		debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][collName].localKeys}));
 		all.push(
 			collection.updateOne({_id: needToUpdateObj[dbName][collName]._id}, {$set: {...needToUpdateObj[dbName][collName].localKeys}})
@@ -325,7 +335,7 @@ const _createSyncItems = async function (dbs, batchSize) {
 		for (const referenceCollection in dependenciesMap[db]) {
 			for (const i in dependenciesMap[db][referenceCollection]) {
 				if (dependenciesMap[db][referenceCollection][i].type !== "ref") {
-					return;
+					continue;
 				}
 				await _createSyncItem({
 					...dependenciesMap[db][referenceCollection][i],
@@ -373,6 +383,7 @@ const _connectToMysql = async () => {
 	}
 	
 	const options = JSON.parse(process.env.MYSQL);
+	options.multipleStatements = true;
 	mysqlConnection = await mysql.createConnection(options);
 };
 
@@ -434,27 +445,86 @@ exports.removeDependency = async function (id) {
 exports.showDependencies = function () {
 	return dependenciesMap;
 };
-
-const _updateSyncItemBatchResults = function ({syncItem, documents, dependentCollection}) {
+const _updateSyncItemBatchResults = async function ({syncItem, documents, dependentCollection}) {
 	
 	const bulk = [];
-	documents.forEach(doc => {
-		const payload = {};
-		for (let dependentField in syncItem.fields_format) {
-			payload[dependentField] = doc[syncItem.fields_format[dependentField]];
+	
+	const updateMongo = async () => {
+		if (syncItem.dependent_collection.split(".")[0] === "mysql") {
+			return;
 		}
-		bulk.push({
-			updateMany: {
-				"filter": {[syncItem.dependent_key]: doc[syncItem.reference_key]},
-				"update": {$set: payload}
+		documents.forEach(doc => {
+			const payload = {};
+			for (let dependentField in syncItem.fields_format) {
+				let value = getObjectPropFromString(doc, syncItem.fields_format[dependentField]);
+				if (value === undefined) {
+					continue;
+				}
+				payload[dependentField] = value;
 			}
+			bulk.push({
+				updateMany: {
+					"filter": {[syncItem.dependent_key]: doc[syncItem.reference_key]},
+					"update": {$set: payload}
+				}
+			});
+		});
+		debug("_updateSyncItemBatchResults", JSON.stringify(bulk));
+		return dependentCollection.bulkWrite(bulk);
+	};
+	
+	const updateMysql = async () => {
+		const [prefix, tableName] = syncItem.dependent_collection.split(".");
+		if (prefix !== "mysql") {
+			return;
+		}
+		let query = "";
+		documents.forEach(doc => {
+			let needQuery = true;
+			
+			for (let dependentField in syncItem.fields_format) {
+				let value = getObjectPropFromString(doc, syncItem.fields_format[dependentField]);
+				if (value === undefined) {
+					continue;
+				}
+				if (needQuery === true) {
+					query += ` update \`${tableName}\` set  `;
+					needQuery = false;
+				}
+				if (value instanceof ObjectId) {
+					value = value.toString();
+				}
+				query += ` \`${dependentField}\`= ${mysql.escape(value)} ,`;
+			}
+			if (needQuery === true) {
+				return;
+			}
+			let refKey = doc[syncItem.reference_key];
+			if (refKey instanceof ObjectId) {
+				refKey = refKey.toString();
+			}
+			query = query.replace(/,$/, "");
+			query += ` where \`${syncItem.dependent_key}\` = ${mysql.escape(refKey)} ;`;
 		});
 		
-	});
-	debug("_updateSyncItemBatchResults", JSON.stringify(bulk));
+		
+		await mysqlConnection.beginTransaction();
+		try {
+			await mysqlConnection.query(query);
+			await mysqlConnection.commit();
+		}
+		catch (e) {
+			await mysqlConnection.rollback();
+			
+			throw e;
+		}
+		
+		
+	};
 	
+	await updateMongo();
+	await updateMysql();
 	
-	return dependentCollection.bulkWrite(bulk);
 	
 };
 
