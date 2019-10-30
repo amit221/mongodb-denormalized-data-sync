@@ -100,21 +100,3 @@ exports.closeConnection = async function () {
 exports.dropDb = function () {
 	return db.dropDatabase();
 };
-
-process.stdin.resume();
-const exitHandler = async (options) => {
-	if (client) {
-		await client.close().catch(console.error);
-	}
-	if (options.exit === true) {
-		process.exit();
-		
-	}
-};
-
-
-process.on("exit", exitHandler.bind(null, {}));
-process.on("SIGTERM", exitHandler.bind(null, {exit: true}));
-process.on("SIGINT", exitHandler.bind(null, {exit: true}));
-process.on("SIGUSR1", exitHandler.bind(null, {exit: true}));
-process.on("SIGUSR2", exitHandler.bind(null, {exit: true}));

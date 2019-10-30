@@ -88,7 +88,7 @@ describe("synchronizer", () => {
 		}
 		
 		const options = JSON.parse(process.env.MYSQL);
-		mysqlConnection = await mysql.createConnection(options);
+		mysqlConnection = await mysql.createConnection({...options, database: "mongo"});
 		await mysqlConnection.query("TRUNCATE TABLE `users`");
 		await mysqlConnection.query("INSERT INTO `users` SET ? ", {
 			user_id: userId,
@@ -113,7 +113,7 @@ describe("synchronizer", () => {
 			id = await synchronizer.addDependency({
 				dbName: dataDb,
 				refCollection: "users",
-				dependentCollection: "mysql.users",
+				dependentCollection: "mysql.mongo.users",
 				foreignField: "_id",
 				localField: "user_id",
 				fieldsToSync: {
@@ -140,7 +140,7 @@ describe("synchronizer", () => {
 			await synchronizer.syncAll({});
 		});
 		
-
+		
 	});
 	
 	describe("addDependency", async () => {
@@ -235,16 +235,16 @@ describe("synchronizer", () => {
 			await db.collection("campaigns").updateOne({name: "camp 1"}, {$set: {name: "camp 1 changed"}});
 			await sleep(500);
 			const orders = await db.collection("orders").find({"campaign.name": "camp 1 changed"}).toArray();
-
-
+			
+			
 			expect(orders.length).to.be.equal(2);
 		});
-
+		
 		it("checks local dependency change", async () => {
 			await db.collection("orders").updateOne({name: "order 1"}, {$set: {"campaign._id": camp1Id2}});
 			await sleep(500);
 			const orders = await db.collection("orders").findOne({"campaign._id": camp1Id2});
-
+			
 			expect(orders.campaign.name).to.be.equal("camp 2");
 		});
 	});

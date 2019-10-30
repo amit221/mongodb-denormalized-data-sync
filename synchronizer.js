@@ -5,9 +5,53 @@ const {ObjectId} = require("mongodb");
 let dependenciesMap = {};
 const referenceKeyProject = {};
 let changeStream;
-let dbClient;
-let mysqlConnection;
+let mysqlPingInterval;
+let dbClient, mysqlOptions;
+const mysqlConnection = {};
+if (process.env.MYSQL) {
+	mysqlOptions = JSON.parse(process.env.MYSQL);
+	mysqlOptions.multipleStatements = true;
+}
 
+if (process.env.debug) {
+	require("console-from");
+}
+
+process.stdin.resume();
+const exitHandler = async (options) => {
+	await synchronizerModel.closeConnection();
+	for (const dbName in mysqlConnection) {
+		if (typeof mysqlConnection[dbName].end === "function") {
+			await mysqlConnection[dbName].end();
+		}
+	}
+	if (options.exit === true) {
+		process.exit();
+		
+	}
+};
+
+
+process.on("exit", exitHandler.bind(null, {}));
+process.on("SIGTERM", exitHandler.bind(null, {exit: true}));
+process.on("SIGINT", exitHandler.bind(null, {exit: true}));
+process.on("SIGUSR1", exitHandler.bind(null, {exit: true}));
+process.on("SIGUSR2", exitHandler.bind(null, {exit: true}));
+
+
+const _checkMySqlConnections = () => {
+	clearInterval(mysqlPingInterval);
+	mysqlPingInterval = setInterval(async () => {
+		for (const dbName in mysqlConnection) {
+			try {
+				await mysqlConnection[dbName].ping();
+			} catch (e) {
+				await mysql.createConnection({...mysqlOptions, database: dbName});
+			}
+		}
+	}, 10000);
+	
+};
 
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
@@ -49,6 +93,7 @@ const _initChangeStream = async function () {
 const _buildDependenciesMap = async function () {
 	const dependencies = await synchronizerModel.getDependencies();
 	dependenciesMap = {};
+	const newMysqlDbs = [];
 	dependencies.forEach(dependency => {
 		dependency.fields_format = JSON.parse(dependency.fields_format);
 		dependenciesMap[dependency.db_name] = dependenciesMap[dependency.db_name] || {};
@@ -68,9 +113,12 @@ const _buildDependenciesMap = async function () {
 			reference_collection_last_update_field: dependency.reference_collection_last_update_field
 			
 		});
-		if (dependency.dependent_collection.split(".")[0] === "mysql") {
+		const [mysqlPrefix, mysqlDbName] = dependency.dependent_collection.split(".");
+		if (mysqlPrefix === "mysql" && !mysqlConnection[mysqlDbName]) {
+			newMysqlDbs.push(mysqlDbName);
 			return;
 		}
+		
 		dependenciesMap[dependency.db_name][dependency.dependent_collection].push({
 			_id: dependency._id,
 			type: "local",
@@ -82,7 +130,15 @@ const _buildDependenciesMap = async function () {
 			
 		});
 	});
+	
+	for (const i in newMysqlDbs) {
+		mysqlConnection[newMysqlDbs[i]] = await mysql.createConnection({
+			...mysqlOptions,
+			database: newMysqlDbs[i]
+		});
+	}
 	debug("dependenciesMap:\n", JSON.stringify(dependenciesMap));
+	debug("mysqlConnections:\n", JSON.stringify(Object.keys(mysqlConnection)));
 	
 };
 
@@ -280,7 +336,7 @@ const _updateCollections = function (needToUpdateObj) {
 		});
 	};
 	const updateMysql = (dbName, tableNameWithPrefix) => {
-		const [mysqlPrefix, tableName] = tableNameWithPrefix.split(".");
+		const [mysqlPrefix, mysqlDbName, tableName] = tableNameWithPrefix.split(".");
 		if (mysqlPrefix !== "mysql") {
 			return;
 		}
@@ -288,17 +344,17 @@ const _updateCollections = function (needToUpdateObj) {
 		Object.keys(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys).forEach(dependentKey => {
 			debug("update payload:\n", JSON.stringify({...needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey]}));
 			const queryParams = [];
-			let query = `update ${tableName} set `;
+			let query = `update \`${mysqlDbName}\`.\`${tableName}\` set `;
 			Object.keys(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey]).forEach((value, key) => {
-				query += " `" + value + "` = ? ,";
+				query += ` \`${value}\`  = ? ,`;
 				queryParams.push(needToUpdateObj[dbName][tableNameWithPrefix].dependentKeys[dependentKey][value]);
 			});
 			query = query.substr(0, query.length - 1);
-			query += "where `" + dependentKey + "` = ?";
+			query += `where  \`${dependentKey}\` = ?`;
 			
 			queryParams.push(needToUpdateObj[dbName][tableNameWithPrefix].refKey.toString());
 			all.push(
-				mysqlConnection.query(query, queryParams)
+				mysqlConnection[mysqlDbName].query(query, queryParams)
 			);
 		});
 		
@@ -376,22 +432,11 @@ const _createSyncItem = async function ({db_name, reference_collection, dependen
 	
 };
 
-
-const _connectToMysql = async () => {
-	if (!process.env.MYSQL) {
-		return;
-	}
-	
-	const options = JSON.parse(process.env.MYSQL);
-	options.multipleStatements = true;
-	mysqlConnection = await mysql.createConnection(options);
-};
-
 exports.start = async function () {
 	dbClient = await synchronizerModel.connect(process.env.MONGODB_URL, process.env.MONGODB_OPTIONS);
-	await _connectToMysql();
 	await _buildDependenciesMap();
 	await _initChangeStream();
+	_checkMySqlConnections();
 };
 exports.pause = async function () {
 	await changeStream.close();
@@ -474,7 +519,7 @@ const _updateSyncItemBatchResults = async function ({syncItem, documents, depend
 	};
 	
 	const updateMysql = async () => {
-		const [prefix, tableName] = syncItem.dependent_collection.split(".");
+		const [prefix, mysqlDbName, tableName] = syncItem.dependent_collection.split(".");
 		if (prefix !== "mysql") {
 			return;
 		}
@@ -508,13 +553,13 @@ const _updateSyncItemBatchResults = async function ({syncItem, documents, depend
 		});
 		
 		
-		await mysqlConnection.beginTransaction();
+		await mysqlConnection[mysqlDbName].beginTransaction();
 		try {
-			await mysqlConnection.query(query);
-			await mysqlConnection.commit();
+			await mysqlConnection[mysqlDbName].query(query);
+			await mysqlConnection[mysqlDbName].commit();
 		}
 		catch (e) {
-			await mysqlConnection.rollback();
+			await mysqlConnection[mysqlDbName].rollback();
 			
 			throw e;
 		}

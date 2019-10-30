@@ -19,10 +19,6 @@ process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
 process.env.MYSQL = program.mysql;
 
-if (program.debug) {
-	require("console-from");
-}
-
 debug("commend line arguments:\n", program.opts());
 
 if (!program.key) {
