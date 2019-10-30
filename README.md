@@ -22,6 +22,8 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 5. After declaring Your dependencies you can retroactively sync your data.
 
+6. from version 0.0.25 you can add a mysql dependency, this is one way dependency the refCollection must be a mongodb collection
+
 
 
 <h2>Notice</h2>
@@ -142,6 +144,7 @@ const synchronizerClientInstance = SynchronizerClient.getInstance({
 synchronizerClientInstance.addDependency({
    
    // the dependent collection is the collection that need to get updated automatically  (required)
+   // in case the dependent collection is a mysql table ,its should be writing like this mysql.dbname.tablename
    dependentCollection: 'orders',
    
    //the referenced collection is the collection that get updated from your application (required)
@@ -192,4 +195,6 @@ synchronizerClientInstance.getDependencies();
 ```
 
 return Promise with all your database dependencies 
+
+
 
