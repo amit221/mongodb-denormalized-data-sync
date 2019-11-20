@@ -70,7 +70,7 @@ const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
 
 const app = express();
-this.app.use(morgan(format));
+app.use(morgan(format));
 app.use(bodyParser.json({limit: "2mb"}));
 app.use(bodyParser.urlencoded({
 	extended: true,
