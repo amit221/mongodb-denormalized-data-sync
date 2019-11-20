@@ -95,7 +95,8 @@ const _buildDependenciesMap = async function () {
 	dependenciesMap = {};
 	const newMysqlDbs = [];
 	dependencies.forEach(dependency => {
-		dependency.fields_format = JSON.parse(dependency.fields_format);
+		
+		dependency.fields_format = typeof dependency.fields_format === "string" ? JSON.parse(dependency.fields_format) : dependency.fields_format;
 		dependenciesMap[dependency.db_name] = dependenciesMap[dependency.db_name] || {};
 		dependenciesMap[dependency.db_name][dependency.reference_collection] = dependenciesMap[dependency.db_name][dependency.reference_collection] || [];
 		dependenciesMap[dependency.db_name][dependency.dependent_collection] = dependenciesMap[dependency.db_name][dependency.dependent_collection] || [];
