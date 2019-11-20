@@ -2,6 +2,8 @@
 
 const program = require("commander");
 const {debug} = require("./utils");
+const morgan = require("morgan");
+
 program
 	.option("--debug", "console log important information")
 	.option("-p, --port <port>", "server port.", 6500)
@@ -18,7 +20,39 @@ process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
 process.env.MYSQL = program.mysql;
+let format = "dev";
 
+if (process.env.debug) {
+	morgan.token("body-str", function getBody(req) {
+		if (!req.body) {
+			return "";
+		}
+		return JSON.stringify(req.body);
+	});
+	morgan.token("ip", function getIp(req) {
+		const ip = req.headers["cf-connecting-ip"] ||
+			req.headers["x-forwarded-for"] ||
+			req.connection.remoteAddress ||
+			req.socket.remoteAddress ||
+			req.connection.socket.remoteAddress;
+		return ip;
+	});
+	
+	
+	format = (tokens, req, res) => {
+		return JSON.stringify({
+			"method": tokens["method"](req, res),
+			"url": tokens["url"](req, res),
+			"status": tokens["status"](req, res),
+			"content-length": tokens["res"](req, res, "content-length"),
+			"response-time": tokens["response-time"](req, res),
+			"referrer": tokens["referrer"](req, res),
+			"ip": tokens["ip"](req, res),
+			"body-str": tokens["body-str"](req, res),
+		});
+	};
+	
+}
 debug("commend line arguments:\n", program.opts());
 
 if (!program.key) {
@@ -36,6 +70,7 @@ const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
 
 const app = express();
+this.app.use(morgan(format));
 app.use(bodyParser.json({limit: "2mb"}));
 app.use(bodyParser.urlencoded({
 	extended: true,
@@ -50,6 +85,7 @@ const addDependency = async function (req, res) {
 		const id = await synchronizer.addDependency(req.body);
 		res.send(id);
 	} catch (e) {
+		console.error(e);
 		res.status(500).send(e.message);
 	}
 	
@@ -62,6 +98,7 @@ const removeDependency = async function (req, res) {
 		await synchronizer.removeDependency(req.params.id);
 		res.send("ok");
 	} catch (e) {
+		console.error(e);
 		res.status(500).send(e.message);
 	}
 };
@@ -70,6 +107,7 @@ const getDependencies = async function (req, res) {
 		const result = await synchronizer.showDependencies();
 		res.send(result);
 	} catch (e) {
+		console.error(e);
 		res.status(500).send(e.message);
 	}
 };
@@ -78,6 +116,7 @@ const sync = async function (req, res) {
 		const result = await synchronizer.syncAll(req.body);
 		res.send(result);
 	} catch (e) {
+		console.error(e);
 		res.status(500).send(e.message);
 	}
 };

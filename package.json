@@ -1,6 +1,6 @@
 {
   "name": "mongodb-data-sync",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "responsible of synchronizing duplicate data between collections",
   "main": "synchronizer_client.js",
   "dependencies": {
@@ -10,9 +10,10 @@
     "commander": "^3.0.0",
     "console-from": "^1.0.12",
     "express": "^4.17.1",
-    "helmet": "^3.20.0",
+    "helmet": "^3.21.2",
     "method-override": "^3.0.0",
     "mongodb": "^3.2.7",
+    "morgan": "^1.9.1",
     "promise-mysql": "^4.1.1"
   },
   "scripts": {
