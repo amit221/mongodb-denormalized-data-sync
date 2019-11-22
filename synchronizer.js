@@ -494,6 +494,9 @@ exports.showDependencies = function () {
 const _updateSyncItemBatchResults = async function ({syncItem, documents, dependentCollection}) {
 	
 	const bulk = [];
+	console.log(documents);
+	
+	console.log(syncItem);
 	
 	const updateMongo = async () => {
 		if (syncItem.dependent_collection.split(".")[0] === "mysql") {

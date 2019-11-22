@@ -20,6 +20,11 @@ process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
 process.env.MYSQL = program.mysql;
+
+const updateNotifier = require('update-notifier');
+const pkg = require('./package.json');
+
+updateNotifier({pkg}).notify();
 let format = "dev";
 
 if (process.env.debug) {

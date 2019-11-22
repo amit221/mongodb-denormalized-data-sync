@@ -30,6 +30,8 @@ const getObjectPropFromString = (obj, propString, delimiter = ".") => {
 	return result;
 };
 
+
+
 exports.getObjectPropFromString = getObjectPropFromString;
 
 

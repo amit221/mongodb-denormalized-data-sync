@@ -14,7 +14,8 @@
     "method-override": "^3.0.0",
     "mongodb": "^3.2.7",
     "morgan": "^1.9.1",
-    "promise-mysql": "^4.1.1"
+    "promise-mysql": "^4.1.1",
+    "update-notifier": "^3.0.1"
   },
   "scripts": {
     "test": "mocha --timeout 4000 "
