@@ -1,5 +1,7 @@
 const _synchronizerClientInstances = {};
 const axios = require("axios");
+
+const _triggerTypes = ["insert", "replace", "delete", "update"];
 const _validateDependency = function ({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id"}) {
 	
 	
@@ -25,6 +27,32 @@ const _validateDependency = function ({dependentCollection, refCollection, local
 	};
 };
 
+const _validateTrigger = function ({dependentCollection, triggerType, url, triggerFields = [], knowledge = false}) {
+	
+	
+	if (!dependentCollection) {
+		throw new Error("dependentCollection is required");
+	}
+	if (!url) {
+		throw new Error("url is required");
+	}
+	if (!triggerType || !_triggerTypes.includes(triggerType)) {
+		throw new Error("triggerType is required and can be only " + _triggerTypes.join(" or "));
+	}
+	if (triggerType === "update" && triggerFields.length === 0) {
+		throw new Error("for update trigger you must set the fields that change in order to set the trigger  ");
+	}
+	
+	return {
+		dependentCollection,
+		triggerType,
+		triggerFields,
+		knowledge,
+		url
+	};
+};
+
+
 class SynchronizerClient {
 	
 	constructor(dbName, engineUrl, apiKey) {
@@ -34,6 +62,17 @@ class SynchronizerClient {
 		this.dbName = dbName;
 		this.engineUrl = engineUrl;
 		this.apiKey = apiKey;
+	}
+	
+	
+	addTrigger({dependentCollection, triggerType, triggerFields = [], knowledge = false}) {
+		const trigger = _validateTrigger({dependentCollection, triggerType, triggerFields, knowledge});
+		trigger.dbName = this.dbName;
+		return axios.post(this.engineUrl + "/triggers?api_key=" + this.apiKey, trigger).then(response => response.data);
+	}
+	
+	removeTrigger(id) {
+		return axios.delete(this.engineUrl + "/triggers/" + id + "?api_key=" + this.apiKey);
 	}
 	
 	async addDependency({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id", refCollectionLastUpdateField}) {
@@ -48,7 +87,7 @@ class SynchronizerClient {
 		});
 		dependency.dbName = this.dbName;
 		return axios.post(this.engineUrl + "/dependencies?api_key=" + this.apiKey, dependency).then(response => response.data);
-		;
+		
 	}
 	
 	removeDependency(id) {
@@ -58,6 +97,7 @@ class SynchronizerClient {
 	getDependencies() {
 		return axios.get(this.engineUrl + "/dependencies?api_key=" + this.apiKey).then(response => response.data);
 	}
+	
 	//todo
 	sync({batchSize = 500, ignoreLastUpdateField = false, fromDate, cleanOldSyncTasks = false, retryDelay = 0}) {
 		return axios.post(this.engineUrl + "/sync?api_key=" + this.apiKey, {dbs: [this.dbName]}).then(response => response.data);

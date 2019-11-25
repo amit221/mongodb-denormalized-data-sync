@@ -56,8 +56,8 @@ const _checkMySqlConnections = () => {
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
 		changeStream = undefined;
-		const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
-		await synchronizerModel.removeResumeToken();
+		const oldResumeTokenDoc = await synchronizerModel.getResumeToken("sync");
+		await synchronizerModel.removeResumeToken("sync");
 		syncAll({cleanOldSyncTasks: true, fromDate: oldResumeTokenDoc.last_update}).catch(console.error);
 		await _initChangeStream();
 		return false;
@@ -69,7 +69,7 @@ const _initChangeStream = async function () {
 	if (changeStream) {
 		await changeStream.close();
 	}
-	const oldResumeTokenDoc = await synchronizerModel.getResumeToken();
+	const oldResumeTokenDoc = await synchronizerModel.getResumeToken("sync");
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let {pipeline, fullDocument} = _buildPipeline();
 	fullDocument = fullDocument ? "updateLookup" : undefined;
@@ -150,33 +150,7 @@ const _extractFields = function (fieldsToSync) {
 	});
 	return [...dependentFields];
 };
-const _checkIfNeedToUpdate = function (dependency) {
-	let id = "new";
-	if (!dependenciesMap[dependency.db_name] ||
-		!dependenciesMap[dependency.db_name][dependency.reference_collection] ||
-		dependenciesMap[dependency.db_name][dependency.reference_collection] && !dependenciesMap[dependency.db_name][dependency.reference_collection].some(dep => {
-			return dependency.dependent_collection === dep.dependent_collection;
-		})
-	) {
-		return id;
-	}
-	dependenciesMap[dependency.db_name][dependency.reference_collection].some(currentDependency => {
-		if (currentDependency.type === "local" ||
-			currentDependency.reference_key !== dependency.reference_key ||
-			currentDependency.dependent_key !== dependency.dependent_key ||
-			JSON.stringify(currentDependency.dependent_fields) !== JSON.stringify(dependency.dependent_fields)
-		) {
-			return false;
-		}
-		if (dependency.dependent_collection === currentDependency.dependent_collection) {
-			id = currentDependency._id;
-			return true;
-		}
-	});
-	
-	return id;
-	
-};
+
 
 const _checkConflict = function (dependency) {
 	if (!dependenciesMap[dependency.db_name] ||
@@ -241,7 +215,7 @@ const _changeStreamLoop = async function (next) {
 		if (Object.keys(needToUpdateObj).length === 0) {
 			return;
 		}
-		await synchronizerModel.addResumeToken({token: next._id});
+		await synchronizerModel.addResumeToken({token: next._id}, "sync");
 		
 		await _updateCollections(needToUpdateObj);
 		
@@ -475,7 +449,6 @@ exports.addDependency = async function (body) {
 	await _initChangeStream();
 	
 	return result.insertedId;
-	
 	
 };
 

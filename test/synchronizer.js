@@ -19,7 +19,13 @@ process.env.DEBUG = program.de;
 process.env.MYSQL = program.mysql;
 
 const dataDb = process.env.MONGODB_DATA_SYNC_DB + "_data";
-const synchronizer = require("../synchronizer");
+let synchronizerServer = require("../synchronizer_server");
+const SynchronizerClient = require("../synchronizer_client");
+SynchronizerClient.init({
+	dbName: process.env.MONGODB_DB_NAME,// the db name you want the synchronization to work on
+	engineUrl: "http://localhost:6500", // the url for the server
+	apiKey: "aaa"//this need to be the same key you declared in your server
+});
 const synchronizerModel = require("../synchronizer_db");
 let mysqlConnection;
 let dbClient, db, camp1Id, camp1Id2, userId, userId2, salesId, salesId2;
@@ -99,18 +105,15 @@ describe("synchronizer", () => {
 		
 		
 	});
-	
-	describe("start", () => {
-		it("connect to database and start the sync loop", async () => {
-			await synchronizer.start();
-			
-		});
-	});
+
+/
 	
 	describe("mysql dependency", async () => {
 		let id;
+		const synchronizerClientInstance = SynchronizerClient.getInstance({dbName: process.env.MONGODB_DB_NAME});
+		
 		it("on success it need to return an id", async () => {
-			id = await synchronizer.addDependency({
+			id = await synchronizerClientInstance.addDependency({
 				dbName: dataDb,
 				refCollection: "users",
 				dependentCollection: "mysql.mongo.users",
@@ -123,7 +126,7 @@ describe("synchronizer", () => {
 					"sales_agent_name": "sales_agent.name"
 				},
 			});
-			await synchronizer.addDependency({
+			await synchronizerClientInstance.addDependency({
 				dbName: dataDb,
 				refCollection: "campaigns",
 				dependentCollection: "users",
@@ -143,7 +146,7 @@ describe("synchronizer", () => {
 		
 	});
 	
-	describe("addDependency", async () => {
+	describe.only("addDependency", async () => {
 		let id;
 		it("on success it need to return an id", async () => {
 			id = await synchronizer.addDependency({
