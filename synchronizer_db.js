@@ -25,10 +25,39 @@ const triggerSchema = {
 	db_name: Joi.string().required(),
 	dependent_collection: Joi.string().required(),
 	trigger_type: Joi.string().allow(["insert", "update", "replace", "delete"]).required(),
-	trigger_fields: Joi.array().min(1).required(),
+	trigger_fields: Joi.when("trigger_type", {is: "update", then: Joi.array().min(1).required()}),
 	url: Joi.string().required(),
 	knowledge: Joi.boolean().default(false)
 };
+exports.getDbClient = function () {
+	return client;
+};
+
+const setCollections = () => {
+	dependenciesCollection = db.collection("dependencies");
+	resumeTokenCollection = db.collection("resume_token");
+	triggersCollection = db.collection("triggers");
+	triggersQueueCollection = db.collection("triggersQueue");
+	syncCollection = db.collection("sync");
+};
+
+const createIndexes = () => {
+	return Promise.all([
+		dependenciesCollection.createIndex({
+			db_name: 1,
+			reference_collection: 1,
+			dependent_collection: 1,
+			dependent_key: 1,
+		}, {unique: true, name: "db_ref_depc_depk"}),
+		
+		triggersCollection.createIndex({
+			db_name: 1,
+			dependent_collection: 1,
+			trigger_type: 1, trigger_fields: 1, knowledge: 1
+		}, {unique: true, name: "db_depc_trit_trif_know"})
+	]);
+};
+exports.createIndexes = createIndexes;
 
 exports.connect = async function (connectionString, connectionOptions = {}) {
 	if (typeof connectionOptions === "string") {
@@ -37,37 +66,22 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 	connectionOptions.useNewUrlParser = true;
 	client = await MongoClient.connect(connectionString, connectionOptions);
 	db = client.db(process.env.MONGODB_DATA_SYNC_DB);
-	dependenciesCollection = db.collection("dependencies");
-	await dependenciesCollection.createIndex({
-		db_name: 1,
-		reference_collection: 1,
-		dependent_collection: 1,
-		dependent_key: 1,
-	}, {unique: true});
-	resumeTokenCollection = db.collection("resume_token");
-	triggersCollection = db.collection("triggers");
-	await dependenciesCollection.createIndex({
-		db_name: 1,
-		dependent_collection: 1,
-		trigger_type: 1, trigger_fields: 1, knowledge: 1
-	}, {unique: true});
-	triggersQueueCollection = db.collection("triggersQueue");
-	syncCollection = db.collection("sync");
+	setCollections();
+	await createIndexes().catch(console.error);
 	return client;
 };
 
 exports.enqueueTrigger = function (url, fields) {
-	return triggersCollection.insertOne({
+	return triggersQueueCollection.insertOne({
 		url,
 		fields
 	});
 };
 exports.getTriggersQueue = () => {
-	return triggersQueueCollection.find();
+	return triggersQueueCollection.find().toArray();
 };
 exports.removeTriggerFromQueue = (id) => {
 	return triggersQueueCollection.removeOne({_id: new ObjectId(id)});
-	
 };
 
 exports.validate = function (payload) {
@@ -90,17 +104,18 @@ exports.addDependency = function (payload) {
 exports.getDependencies = function () {
 	return dependenciesCollection.find().toArray();
 };
-
+exports.getTriggerIdByAllFields = function ({...trigger}) {
+	delete trigger._id
+	return triggersCollection.findOne(trigger, {$projection: {_id: 1}});
+};
 exports.getTriggers = function () {
 	return triggersCollection.find().toArray();
 };
 exports.addTrigger = function (payload) {
 	return triggersCollection.insertOne(payload);
-	
 };
 exports.removeTrigger = function (id) {
 	return triggersCollection.deleteOne({_id: new ObjectId(id)});
-	
 };
 
 exports.addResumeToken = function (payload, type) {
@@ -142,5 +157,11 @@ exports.closeConnection = async function () {
 };
 
 exports.dropDb = function () {
-	return db.dropDatabase();
+	
+	const dbData = client.db(process.env.MONGODB_DATA_SYNC_DB + "_data");
+	
+	return Promise.all([
+		db.dropDatabase(),
+		dbData.dropDatabase()
+	]);
 };

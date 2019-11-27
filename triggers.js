@@ -1,26 +1,37 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, getObjectPropFromString, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR} = require("./utils");
+const {debug, RESUME_TOKEN_ERROR} = require("./utils");
 const axios = require("axios");
 let changeStream, dbClient;
 let triggersMap = {};
+let triggersQueueInfLoopInterval;
 
-
-exports.start = async function () {
+exports.start = async function (db) {
+	dbClient = db || synchronizerModel.getDbClient();
 	await _buildTriggersMap();
 	await initChangeStream();
+	_triggersQueueInfLoop();
 };
 
+const _triggersQueueInfLoop = async () => {
+	clearInterval(triggersQueueInfLoopInterval);
+	
+	try {
+		const triggers = await synchronizerModel.getTriggersQueue();
+		for (let i in triggers) {
+			const trigger = triggers[i];
+			await axios.post(trigger.url, trigger.fields)
+				.then(() => synchronizerModel.removeTriggerFromQueue(trigger._id))
+				.catch(response => _failedTrigger(trigger, trigger.fields, response));
+		}
+	}catch (e) {
+		
+	}
+	
+	triggersQueueInfLoopInterval = setTimeout(() => {
+		_triggersQueueInfLoop();
+	}, process.env.TRIGGERS_LOOP_INF_INTERVAL || 1000 * 60 * 3);
+};
 
-setInterval(() => {
-	synchronizerModel.getTriggersQueue()
-		.then(async triggers => {
-			for (let i in triggers) {
-				const trigger = triggers[i];
-				await axios.post(trigger.url, trigger.fields).then(() => synchronizerModel.removeTriggerFromQueue(trigger._id));
-			}
-			
-		});
-}, 1000 * 60 * 3);
 
 const initChangeStream = async function () {
 	if (changeStream) {
@@ -52,14 +63,12 @@ const _buildTriggersMap = async function () {
 	const triggers = await synchronizerModel.getTriggers();
 	triggersMap = {};
 	triggers.forEach(trigger => {
-		
 		triggersMap[trigger.db_name] = triggersMap[trigger.db_name] || {};
 		triggersMap[trigger.db_name][trigger.dependent_collection] = triggersMap[trigger.db_name][trigger.dependent_collection] || [];
-		
-		triggersMap[trigger.db_name][trigger.dependent_collection].push({
-			[trigger.trigger_type]: new Set(trigger.trigger_fields),
-			knowledge: trigger.knowledge
-		});
+		if (Array.isArray(trigger.trigger_fields)) {
+			trigger.trigger_fields_set = new Set(trigger.trigger_fields);
+		}
+		triggersMap[trigger.db_name][trigger.dependent_collection].push(trigger);
 	});
 };
 
@@ -82,11 +91,10 @@ exports.addTrigger = async function (body) {
 	}
 	try {
 		result = await synchronizerModel.addTrigger(value);
-		
-		
 	} catch (e) {
 		if (e.code === 11000) { // duplicate key error
-			return "new";
+			result = await synchronizerModel.getTriggerIdByAllFields(value);
+			return result._id;
 		}
 		throw e;
 	}
@@ -126,11 +134,11 @@ const _buildPipeline = function () {
 			triggersMap[dbName][collName].forEach(trigger => {
 				operations.add(trigger.trigger_type);
 			});
-			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: operations}});
+			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]}});
 		});
 	});
 	
-	const project = {documentKey: 1, updateDescription: 1, fullDocument: 1, ns: 1};
+	const project = {documentKey: 1, updateDescription: 1, operationType: 1, ns: 1};
 	
 	pipeline.push({
 		$project: project
@@ -138,52 +146,49 @@ const _buildPipeline = function () {
 	return pipeline;
 };
 
-const _fireTriggers = function ({ns, documentKey, operationType, updateDescription, fullDocument}) {
-	if (!triggersMap[ns.db] ||
-		!triggersMap[ns.db][ns.coll]
-	) {
+const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
+	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
-	
 	for (let i in triggersMap[ns.db][ns.coll]) {
-		if (!triggersMap[ns.db][ns.coll][i][operationType]) {
+		
+		if (triggersMap[ns.db][ns.coll][i].trigger_type !== operationType) {
 			continue;
 		}
-		if (triggersMap[ns.db][ns.coll][i][operationType] === "update") {
-			_triggerUpdateOperation(triggersMap[ns.db][ns.coll][i][operationType], documentKey, updateDescription);
+		
+		if (triggersMap[ns.db][ns.coll][i].trigger_type === "update") {
+			_triggerUpdateOperation(triggersMap[ns.db][ns.coll][i], documentKey, updateDescription);
 			continue;
 		}
-		triggerDeleteInsertReplaceOperation(triggersMap[ns.db][ns.coll][i][operationType]);
+		
+		triggerDeleteInsertReplaceOperation(triggersMap[ns.db][ns.coll][i], documentKey, operationType);
 		
 	}
 };
 
 const _triggerUpdateOperation = function (trigger, documentKey, updateDescription) {
-	const fields = {};
+	const fields = {...updateDescription.updatedFields};
 	let needToTrigger = false;
-	for (const field in updateDescription) {
-		if (trigger.trigger_fields.has(field)) {
-			fields[field] = updateDescription[field];
+	for (const field in updateDescription.updatedFields) {
+		if (trigger.trigger_fields_set.has(field)) {
 			needToTrigger = true;
 		}
 	}
-	
 	if (needToTrigger) {
 		fields.documentKey = documentKey;
-		axios.post(trigger.url, fields).catch(response => {
-			if (trigger.knowledge === true && (!response || response.status !== 404)) {
-				synchronizerModel.enqueueTrigger(trigger.url, fields);
-			}
-		});
+		fields.operationType = "update";
+		axios.post(trigger.url, fields).catch(response => _failedTrigger(trigger, fields, response));
 	}
 };
-const triggerDeleteInsertReplaceOperation = function (trigger, documentKey) {
-	const fields = {documentKey};
-	axios.post(trigger.url, fields).catch(response => {
-		if (trigger.knowledge === true && (!response || response.status !== 404)) {
-			synchronizerModel.enqueueTrigger(trigger.url, fields);
-		}
-	});
+const _failedTrigger = (trigger, fields, response) => {
+	if (trigger.knowledge === true && (!response || response.response.status !== 404)) {
+		synchronizerModel.enqueueTrigger(trigger.url, fields);
+	}
+};
+
+const triggerDeleteInsertReplaceOperation = function (trigger, documentKey, operationType) {
+	const fields = {documentKey, operationType};
+	axios.post(trigger.url, fields).catch(response => _failedTrigger(trigger, fields, response));
 };
 
 const _changeStreamLoop = async function (next) {

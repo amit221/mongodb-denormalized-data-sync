@@ -181,7 +181,7 @@ return Promise with the id of the Dependency
 
 
 ```javascript
-// deletes a dependency using the id ou got from creating a dependency 
+// deletes a dependency based on id 
 synchronizerClientInstance.removeDependency(id);
 ```
 return Promise 
@@ -195,6 +195,47 @@ synchronizerClientInstance.getDependencies();
 ```
 
 return Promise with all your database dependencies 
+
+<strong>syncAll</strong>
+
+```javascript
+// used to sync all the data in your database according to your dependencies.
+// most of the time this function needs to be called only if you add a new dependency on an old data 
+synchronizerClientInstance.syncAll();
+
+```
+
+return Promise 
+
+<strong>addTrigger</strong>
+
+```javascript
+
+synchronizerClientInstance.addTrigger({
+
+    // the dependent collection to subscribe triggers on (required)
+    dependentCollection : "orders",
+    
+    // the type of the trigger , can be insert,update,replace,delete (required)
+    triggerType:'insert',
+    
+    // when triggerType is update define which fields you want to trigger the update 
+    triggerFields : [],
+   
+    // when knowledge set to true it will retry to fire the event until its get on ok http status
+    knowledge : false // default
+});
+
+```
+return Promise with the id of the Trigger 
+
+
+```javascript
+// deletes a trigger based on id 
+synchronizerClientInstance.removeTrigger(id);
+```
+return Promise 
+ 
 
 
 

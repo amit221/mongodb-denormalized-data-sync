@@ -20,6 +20,7 @@ process.env.API_KEY = program.key;
 process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
 process.env.MYSQL = program.mysql;
+
 let format = "dev";
 
 if (process.env.debug) {
