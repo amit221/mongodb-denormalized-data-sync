@@ -24,10 +24,11 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 6. from version 0.0.25 you can add a mysql dependency, this is one way dependency the refCollection must be a mongodb collection
 
+7. from version 0.0.29 you can now create triggers for update,insert,replace and delete
 
 
 <h2>Notice</h2>
-<strong>mongodb-data-sync is still experimental and hasn't been tested on production yet</strong> 
+<strong>mongodb-data-sync is still experimental</strong> 
 
 <h2>Pros and cons of having duplicate data in multiple collection </h2>
 
