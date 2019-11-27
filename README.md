@@ -230,6 +230,7 @@ synchronizerClientInstance.addTrigger({
 ```
 return Promise with the id of the Trigger 
 
+<strong>removeTrigger</strong>
 
 ```javascript
 // deletes a trigger based on id 
