@@ -65,8 +65,8 @@ class SynchronizerClient {
 	}
 	
 	
-	addTrigger({dependentCollection, triggerType, triggerFields = [], knowledge = false}) {
-		const trigger = _validateTrigger({dependentCollection, triggerType, triggerFields, knowledge});
+	addTrigger({dependentCollection, triggerType, triggerFields = [], url, knowledge = false}) {
+		const trigger = _validateTrigger({dependentCollection, triggerType, triggerFields, url, knowledge});
 		trigger.dbName = this.dbName;
 		return axios.post(this.engineUrl + "/triggers?api_key=" + this.apiKey, trigger).then(response => response.data);
 	}
