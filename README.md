@@ -224,7 +224,10 @@ synchronizerClientInstance.addTrigger({
     triggerFields : [],
    
     // when knowledge set to true it will retry to fire the event until its get on ok http status
-    knowledge : false // default
+    knowledge : false, // default
+    
+    // the url the trigger will call 
+    url:'http://localhost/insert-trigger'
 });
 
 ```
