@@ -21,26 +21,21 @@ process.env.MONGODB_URL = program.url;
 process.env.DEBUG = program.debug;
 process.env.MYSQL = program.mysql;
 
-let format = "dev";
-
-if (process.env.debug) {
-	morgan.token("body-str", function getBody(req) {
-		if (!req.body) {
-			return "";
-		}
-		return JSON.stringify(req.body);
-	});
-	morgan.token("ip", function getIp(req) {
-		const ip = req.headers["cf-connecting-ip"] ||
-			req.headers["x-forwarded-for"] ||
-			req.connection.remoteAddress ||
-			req.socket.remoteAddress ||
-			req.connection.socket.remoteAddress;
-		return ip;
-	});
-}
-
-format = (tokens, req, res) => {
+morgan.token("body-str", function getBody(req) {
+	if (!req.body) {
+		return "";
+	}
+	return JSON.stringify(req.body);
+});
+morgan.token("ip", function getIp(req) {
+	const ip = req.headers["cf-connecting-ip"] ||
+		req.headers["x-forwarded-for"] ||
+		req.connection.remoteAddress ||
+		req.socket.remoteAddress ||
+		req.connection.socket.remoteAddress;
+	return ip;
+});
+const format = (tokens, req, res) => {
 	return JSON.stringify({
 		"method": tokens["method"](req, res),
 		"url": tokens["url"](req, res),
