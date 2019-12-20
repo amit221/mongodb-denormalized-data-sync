@@ -46,7 +46,7 @@ It uses the native MongoDB <a href='https://docs.mongodb.com/manual/changeStream
 
 <h2>Requirements</h2>
 <ul>
-<li>MongoDB v3.6 or higher replaica set </li>
+<li>MongoDB v4 or higher replaica set </li>
 <li>nodejs 7.6 or higher </li>
 </ul>
 
