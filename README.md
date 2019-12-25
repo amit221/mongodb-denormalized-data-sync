@@ -124,7 +124,7 @@ SynchronizerClient.init({
 }); 
 ```
 returns a Promise
-//
+
 <strong>getInstance</strong>
 ```javascript
 const synchronizerClientInstance = SynchronizerClient.getInstance({
@@ -133,9 +133,8 @@ const synchronizerClientInstance = SynchronizerClient.getInstance({
     dbName: 'mydb', 
 
 }); 
-// return an instance related to your db(its not a mongodb db instance) for dependencies operations  
 ````
-
+return an instance related to your db(its not a mongodb db instance) for dependencies operations  
 
 <strong>addDependency</strong>
 
@@ -167,7 +166,7 @@ synchronizerClientInstance.addDependency({
    },
    
     // the engine uses a resume-token to know from where to continue the change stream. 
-    // in case you had a crash for a long time and the oplog doesn't have this token anymore the engine will start update all the dependencies from the begging,
+    // in case you had a crash for a long time and the oplog doesn't have this token anymore the engine will start update all the dependencies from the beginning,
     // it is recommended to supply an update field (if you have) so the engine will start sync only for dates after the crash 
     refCollectionLastUpdateField:'last_update'
 
