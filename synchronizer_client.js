@@ -62,10 +62,18 @@ class SynchronizerClient {
 		this.dbName = dbName;
 		this.engineUrl = engineUrl;
 		this.apiKey = apiKey;
+		this.active = true;
+	}
+	
+	setActive(active) {
+		this.active = !!active;
 	}
 	
 	
 	addTrigger({dependentCollection, triggerType, triggerFields = [], url, knowledge = false}) {
+		if (this.active === false) {
+			return;
+		}
 		const trigger = _validateTrigger({dependentCollection, triggerType, triggerFields, url, knowledge});
 		trigger.dbName = this.dbName;
 		return axios.post(this.engineUrl + "/triggers?api_key=" + this.apiKey, trigger).then(response => response.data);
@@ -76,7 +84,9 @@ class SynchronizerClient {
 	}
 	
 	async addDependency({dependentCollection, refCollection, localField, fieldsToSync = {}, foreignField = "_id", refCollectionLastUpdateField}) {
-		
+		if (this.active === false) {
+			return;
+		}
 		const dependency = _validateDependency({
 			dependentCollection,
 			refCollection,
