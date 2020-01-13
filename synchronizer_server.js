@@ -35,7 +35,8 @@ morgan.token("ip", function getIp(req) {
 		req.connection.socket.remoteAddress;
 	return ip;
 });
-const format = (tokens, req, res) => {
+const morganFormat = (tokens, req, res) => {
+	
 	return JSON.stringify({
 		"method": tokens["method"](req, res),
 		"url": tokens["url"](req, res),
@@ -67,7 +68,7 @@ const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
 
 const app = express();
-app.use(morgan(format));
+app.use(morgan(morganFormat));
 app.use(bodyParser.json({limit: "2mb"}));
 app.use(bodyParser.urlencoded({
 	extended: true,
