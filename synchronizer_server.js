@@ -84,7 +84,7 @@ const addTrigger = async function (req, res) {
 		res.send(id);
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 	
 };
@@ -97,7 +97,7 @@ const removeTrigger = async function (req, res) {
 		res.send("ok");
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 };
 
@@ -107,7 +107,7 @@ const addDependency = async function (req, res) {
 		res.send(id);
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 	
 };
@@ -120,7 +120,7 @@ const removeDependency = async function (req, res) {
 		res.send("ok");
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 };
 
@@ -130,7 +130,7 @@ const getDependencies = async function (req, res) {
 		res.send(result);
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 };
 const sync = async function (req, res) {
@@ -139,7 +139,7 @@ const sync = async function (req, res) {
 		res.send(result);
 	} catch (e) {
 		console.error(e);
-		res.status(500).send(e.message);
+		res.status(500).json(e);
 	}
 };
 const auth = function (req, res, next) {
