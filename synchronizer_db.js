@@ -103,7 +103,7 @@ exports.addDependency = async function (payload) {
 		const result = await dependenciesCollection.insertOne(payload);
 		return result;
 	} catch (e) {
-		if (e.message.includes("E11000") && e.message.includes("db_name_1_reference_collection_1_dependent_collection_1_dependent_key_1 dup")) {
+		if (e.code === "E11000" && e.errmsg.includes("db_name_1_reference_collection_1_dependent_collection_1_dependent_key_1 dup")) {
 			e.existingDocumentId = await dependenciesCollection.findOne({
 				reference_collection: payload.reference_collection,
 				dependent_collection: payload.dependent_collection,
