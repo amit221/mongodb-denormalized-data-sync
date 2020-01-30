@@ -49,15 +49,15 @@ const _checkMySqlConnections = () => {
 				await mysql.createConnection({...mysqlOptions, database: dbName});
 			}
 		}
-	},100);
+	}, 100);
 	
 };
 
 const _removeResumeTokenAndInit = async function (err) {
 	if (err.code === RESUME_TOKEN_ERROR) {
 		changeStream = undefined;
-		const oldResumeTokenDoc = await synchronizerModel.getResumeToken('sync');
-		await synchronizerModel.removeResumeToken('sync');
+		const oldResumeTokenDoc = await synchronizerModel.getResumeToken("sync");
+		await synchronizerModel.removeResumeToken("sync");
 		syncAll({cleanOldSyncTasks: true, fromDate: oldResumeTokenDoc.last_update}).catch(console.error);
 		await _initChangeStream();
 		return false;
@@ -193,7 +193,7 @@ const _checkConflict = function (dependency) {
 	
 	dependency.dependent_fields.forEach(field => {
 		dependenciesMap[dependency.db_name][dependency.dependent_collection].forEach(dependency => {
-			if (dependency.dependent_fields.includes(field)) {
+			if (dependency.type !== "local" && dependency.dependent_fields.includes(field)) {
 				throw new Error("a dependency conflict has accord in field " + field);
 			}
 			
