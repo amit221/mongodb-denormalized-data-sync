@@ -98,14 +98,27 @@ exports.removeDependency = function (id) {
 	return dependenciesCollection.deleteOne({_id: new ObjectId(id)});
 };
 
-exports.addDependency = function (payload) {
-	return dependenciesCollection.insertOne(payload);
+exports.addDependency = async function (payload) {
+	try {
+		const result = await dependenciesCollection.insertOne(payload);
+		return result;
+	} catch (e) {
+		if (e.message.includes("E11000") && e.message.includes("db_name_1_reference_collection_1_dependent_collection_1_dependent_key_1 dup")) {
+			e.existingDocumentId = await dependenciesCollection.findOne({
+				reference_collection: payload.reference_collection,
+				dependent_collection: payload.dependent_collection,
+				dependent_key: payload.dependent_key
+			}, {$projection: {_id: 1}});
+		}
+		throw e;
+	}
+	
 };
 exports.getDependencies = function () {
 	return dependenciesCollection.find().toArray();
 };
 exports.getTriggerIdByAllFields = function ({...trigger}) {
-	delete trigger._id
+	delete trigger._id;
 	return triggersCollection.findOne(trigger, {$projection: {_id: 1}});
 };
 exports.getTriggers = function () {
