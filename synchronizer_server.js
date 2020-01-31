@@ -151,7 +151,7 @@ const auth = function (req, res, next) {
 
 app.get("/dependencies", auth, getDependencies);
 app.post("/dependencies", auth, addDependency);
-app.delete("/dependencies", auth, removeDependency);
+app.delete("/dependencies/:id", auth, removeDependency);
 
 app.post("/sync", auth, sync);
 
