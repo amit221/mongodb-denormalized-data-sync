@@ -147,6 +147,8 @@ const _buildPipeline = function () {
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
+	console.log("{ns, documentKey, operationType, updateDescription}",{ns, documentKey, operationType, updateDescription})
+	console.log(triggersMap)
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
@@ -174,7 +176,9 @@ const _triggerUpdateOperation = function (trigger, documentKey, updateDescriptio
 			needToTrigger = true;
 		}
 	}
+	console.log(trigger,fields)
 	if (needToTrigger) {
+		console.log("fireeee")
 		fields.documentKey = documentKey;
 		fields.operationType = "update";
 		axios.post(trigger.url, fields).catch(response => _failedTrigger(trigger, fields, response));
