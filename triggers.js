@@ -40,12 +40,13 @@ const initChangeStream = async function () {
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken("trigger");
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let pipeline = _buildPipeline();
-	console.log("pipline1", pipeline);
+	console.dir("pipline1", pipeline);
 
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
-	console.log("pipline2", pipeline);
+	console.dir("pipline2", pipeline);
+	console.dir("pipline2", resumeAfter);
 
 	changeStream = dbClient.watch(pipeline, {resumeAfter});
 	changeStream.on("change", next => {
@@ -53,8 +54,8 @@ const initChangeStream = async function () {
 		_changeStreamLoop(next);
 	});
 	changeStream.on("error", async err => {
+		console.error(err)
 		if (await _removeResumeTokenAndInit(err) === true) {
-			console.error(err);
 			process.exit();
 		}
 	});
