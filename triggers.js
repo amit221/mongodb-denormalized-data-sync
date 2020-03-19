@@ -40,12 +40,16 @@ const initChangeStream = async function () {
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken("trigger");
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let pipeline = _buildPipeline();
+	console.log("pipline1", pipeline);
+
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
+	console.log("pipline2", pipeline);
 
 	changeStream = dbClient.watch(pipeline, {resumeAfter});
 	changeStream.on("change", next => {
+		console.log("hhhhhhhhhhhhhhhhhh")
 		_changeStreamLoop(next);
 	});
 	changeStream.on("error", async err => {
@@ -147,8 +151,13 @@ const _buildPipeline = function () {
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
-	console.log("{ns, documentKey, operationType, updateDescription}",{ns, documentKey, operationType, updateDescription})
-	console.log(triggersMap)
+	console.log("{ns, documentKey, operationType, updateDescription}", {
+		ns,
+		documentKey,
+		operationType,
+		updateDescription
+	});
+	console.log(triggersMap);
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
@@ -176,9 +185,9 @@ const _triggerUpdateOperation = function (trigger, documentKey, updateDescriptio
 			needToTrigger = true;
 		}
 	}
-	console.log(trigger,fields)
+	console.log(trigger, fields);
 	if (needToTrigger) {
-		console.log("fireeee")
+		console.log("fireeee");
 		fields.documentKey = documentKey;
 		fields.operationType = "update";
 		axios.post(trigger.url, fields).catch(response => _failedTrigger(trigger, fields, response));
