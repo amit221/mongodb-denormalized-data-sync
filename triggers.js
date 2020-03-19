@@ -40,13 +40,13 @@ const initChangeStream = async function () {
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken("trigger");
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let pipeline = _buildPipeline();
-	console.dir("pipline1", pipeline);
+	console.log("pipline1", JSON.stringify(pipeline));
 
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
-	console.dir("pipline2", pipeline);
-	console.dir("pipline2", resumeAfter);
+	console.log("pipline2", JSON.stringify(pipeline));
+	console.log("resumeAfter", JSON.stringify(resumeAfter));
 
 	changeStream = dbClient.watch(pipeline, {resumeAfter});
 	changeStream.on("change", next => {
@@ -75,6 +75,8 @@ const _buildTriggersMap = async function () {
 		}
 		triggersMap[trigger.db_name][trigger.dependent_collection].push(trigger);
 	});
+	console.log("triggersMap", JSON.stringify(triggersMap));
+
 };
 
 
