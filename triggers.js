@@ -1,5 +1,5 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, RESUME_TOKEN_ERROR} = require("./utils");
+const {debug, RESUME_TOKEN_ERROR, CHANGE_STREAM_FATAL_ERROR} = require("./utils");
 const axios = require("axios");
 let changeStream, dbClient;
 let triggersMap = {};
@@ -14,19 +14,19 @@ exports.start = async function (db) {
 
 const _triggersQueueInfLoop = async () => {
 	clearInterval(triggersQueueInfLoopInterval);
-	
+
 	try {
 		const triggers = await synchronizerModel.getTriggersQueue();
 		for (let i in triggers) {
 			const trigger = triggers[i];
-			await axios.post(trigger.url, trigger.fields)
+			axios.post(trigger.url, trigger.fields)
 				.then(() => synchronizerModel.removeTriggerFromQueue(trigger._id))
 				.catch(response => _failedTrigger(trigger, trigger.fields, response));
 		}
-	}catch (e) {
-		
+	} catch (e) {
+		console.error(e);
 	}
-	
+
 	triggersQueueInfLoopInterval = setTimeout(() => {
 		_triggersQueueInfLoop();
 	}, process.env.TRIGGERS_LOOP_INF_INTERVAL || 1000 * 60 * 3);
@@ -40,17 +40,18 @@ const initChangeStream = async function () {
 	const oldResumeTokenDoc = await synchronizerModel.getResumeToken("trigger");
 	const resumeAfter = oldResumeTokenDoc ? oldResumeTokenDoc.token : undefined;
 	let pipeline = _buildPipeline();
+
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
-	
+
 	changeStream = dbClient.watch(pipeline, {resumeAfter});
 	changeStream.on("change", next => {
 		_changeStreamLoop(next);
 	});
 	changeStream.on("error", async err => {
+		console.error(err)
 		if (await _removeResumeTokenAndInit(err) === true) {
-			console.error(err);
 			process.exit();
 		}
 	});
@@ -70,6 +71,7 @@ const _buildTriggersMap = async function () {
 		}
 		triggersMap[trigger.db_name][trigger.dependent_collection].push(trigger);
 	});
+
 };
 
 
@@ -83,9 +85,9 @@ exports.addTrigger = async function (body) {
 		knowledge: body.knowledge,
 		url: body.url
 	};
-	
+
 	const {error, value} = synchronizerModel.validateTrigger(payload);
-	
+
 	if (error) {
 		throw new Error(error);
 	}
@@ -100,9 +102,9 @@ exports.addTrigger = async function (body) {
 	}
 	await _buildTriggersMap();
 	await initChangeStream();
-	
+
 	return result.insertedId;
-	
+
 };
 exports.removeTrigger = async function (id) {
 	const result = await synchronizerModel.removeTrigger(id);
@@ -113,7 +115,7 @@ exports.removeTrigger = async function (id) {
 };
 
 const _removeResumeTokenAndInit = async function (err) {
-	if (err.code === RESUME_TOKEN_ERROR) {
+	if (err.code === RESUME_TOKEN_ERROR || err.code === CHANGE_STREAM_FATAL_ERROR) {
 		changeStream = undefined;
 		await synchronizerModel.removeResumeToken("trigger");
 		await initChangeStream();
@@ -127,7 +129,7 @@ const _buildPipeline = function () {
 	const pipeline = [
 		{$match}
 	];
-	
+
 	Object.keys(triggersMap).forEach(dbName => {
 		Object.keys(triggersMap[dbName]).forEach(collName => {
 			const operations = new Set();
@@ -137,9 +139,9 @@ const _buildPipeline = function () {
 			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]}});
 		});
 	});
-	
+
 	const project = {documentKey: 1, updateDescription: 1, operationType: 1, ns: 1};
-	
+
 	pipeline.push({
 		$project: project
 	});
@@ -147,22 +149,23 @@ const _buildPipeline = function () {
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
+
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
 	for (let i in triggersMap[ns.db][ns.coll]) {
-		
+
 		if (triggersMap[ns.db][ns.coll][i].trigger_type !== operationType) {
 			continue;
 		}
-		
+
 		if (triggersMap[ns.db][ns.coll][i].trigger_type === "update") {
 			_triggerUpdateOperation(triggersMap[ns.db][ns.coll][i], documentKey, updateDescription);
 			continue;
 		}
-		
+
 		triggerDeleteInsertReplaceOperation(triggersMap[ns.db][ns.coll][i], documentKey, operationType);
-		
+
 	}
 };
 
@@ -192,19 +195,19 @@ const triggerDeleteInsertReplaceOperation = function (trigger, documentKey, oper
 };
 
 const _changeStreamLoop = async function (next) {
-	
-	
+
+
 	if (!next || !next._id) {
 		return;
 	}
 	try {
 		await synchronizerModel.addResumeToken({token: next._id}, "trigger");
 		await _fireTriggers(next);
-		
+
 	} catch (e) {
 		console.error(e);
 	}
-	
-	
+
+
 };
 
