@@ -386,7 +386,7 @@ const _updateCollections = function (needToUpdateObj) {
 
 const _createSyncItems = async function (dbs, batchSize) {
 	for (const db in dependenciesMap) {
-		if (dbs && !dbs[db]) {
+		if (dbs && !dbs.includes(db)) {
 			continue;
 		}
 		for (const referenceCollection in dependenciesMap[db]) {
