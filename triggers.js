@@ -1,5 +1,5 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, RESUME_TOKEN_ERROR, CHANGE_STREAM_FATAL_ERROR} = require("./utils");
+const {debug, RESUME_TOKEN_ERROR, CHANGE_STREAM_FATAL_ERROR, changeStreamErrors} = require("./utils");
 const axios = require("axios");
 let changeStream, dbClient;
 let triggersMap = {};
@@ -50,7 +50,7 @@ const initChangeStream = async function () {
 		_changeStreamLoop(next);
 	});
 	changeStream.on("error", async err => {
-		console.error(err)
+		console.error(err);
 		if (await _removeResumeTokenAndInit(err) === true) {
 			process.exit();
 		}
@@ -115,7 +115,7 @@ exports.removeTrigger = async function (id) {
 };
 
 const _removeResumeTokenAndInit = async function (err) {
-	if (err.code === RESUME_TOKEN_ERROR || err.code === CHANGE_STREAM_FATAL_ERROR) {
+	if (changeStreamErrors.includes(err.code)) {
 		changeStream = undefined;
 		await synchronizerModel.removeResumeToken("trigger");
 		await initChangeStream();

@@ -39,7 +39,14 @@
   },
   "homepage": "https://github.com/amit221/mongodb-denormalized-data-sync#readme",
   "devDependencies": {
-    "chai": "^4.1.2",
+    "babel-eslint": "^9.0.0",
+    "chai": "^4.3.7",
+    "eslint": "^5.16.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-promise": "^4.3.1",
+    "eslint-plugin-standard": "^4.1.0",
     "mocha": "^6.2.3"
   }
 }

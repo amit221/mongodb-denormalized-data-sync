@@ -1,5 +1,7 @@
 const synchronizerModel = require("./synchronizer_db");
-const {debug, getObjectPropFromString, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR, CHANGE_STREAM_FATAL_ERROR} = require("./utils");
+const {debug, getObjectPropFromString, DUPLICATE_CODE_ERROR, RESUME_TOKEN_ERROR, CHANGE_STREAM_FATAL_ERROR,
+	changeStreamErrors
+} = require("./utils");
 const mysql = require("promise-mysql");
 const {ObjectId} = require("mongodb");
 let dependenciesMap = {};
@@ -54,7 +56,7 @@ const _checkMySqlConnections = () => {
 };
 
 const _removeResumeTokenAndInit = async function (err) {
-	if (err.code === RESUME_TOKEN_ERROR || err.code === CHANGE_STREAM_FATAL_ERROR) {
+	if (changeStreamErrors.includes(err.code)) {
 		changeStream = undefined;
 		const oldResumeTokenDoc = await synchronizerModel.getResumeToken("sync");
 		await synchronizerModel.removeResumeToken("sync");
