@@ -12,7 +12,7 @@
     "express": "^4.17.1",
     "helmet": "^3.23.3",
     "method-override": "^3.0.0",
-    "mongodb": "^3.6.3",
+    "mongodb": "^5.5.0",
     "morgan": "^1.10.0",
     "promise-mysql": "^4.1.4"
   },
@@ -47,6 +47,6 @@
     "eslint-plugin-node": "^7.0.1",
     "eslint-plugin-promise": "^4.3.1",
     "eslint-plugin-standard": "^4.1.0",
-    "mocha": "^6.2.3"
+    "mocha": "^10.2.0"
   }
 }
