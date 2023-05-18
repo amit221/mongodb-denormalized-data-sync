@@ -125,18 +125,24 @@ const _removeResumeTokenAndInit = async function (err) {
 };
 const _buildPipeline = function () {
 	const $or = [];
-	const $match = {operationType: {$in: ["update", "insert", "delete", "replace"]}, $or};
+	const $match = {$or};
 	const pipeline = [
 		{$match}
 	];
-
 	Object.keys(triggersMap).forEach(dbName => {
 		Object.keys(triggersMap[dbName]).forEach(collName => {
 			const operations = new Set();
+			const watchKeys = [];
 			triggersMap[dbName][collName].forEach(trigger => {
 				operations.add(trigger.trigger_type);
+				[...trigger.trigger_fields_set].forEach(field => watchKeys.push("updateDescription.updatedFields." + field));
 			});
-			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]}});
+			if(watchKeys.length === 0){
+				return;
+			}
+			const watchKeysOr = watchKeys.map(key => ({[key]: {$exists: true}}))
+			//console.log(watchKeysOr)
+			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]},$or:watchKeysOr});
 		});
 	});
 
@@ -149,10 +155,10 @@ const _buildPipeline = function () {
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
-
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
+
 	for (let i in triggersMap[ns.db][ns.coll]) {
 
 		if (triggersMap[ns.db][ns.coll][i].trigger_type !== operationType) {
