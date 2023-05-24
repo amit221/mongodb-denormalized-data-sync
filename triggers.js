@@ -44,8 +44,8 @@ const initChangeStream = async function () {
 	if (pipeline[0].$match.$or.length === 0) {
 		return;
 	}
-
-	changeStream = dbClient.watch(pipeline, {resumeAfter});
+	//console.log(JSON.stringify(pipeline));
+	changeStream = dbClient.watch(pipeline);
 	changeStream.on("change", next => {
 		_changeStreamLoop(next);
 	});
@@ -129,20 +129,18 @@ const _buildPipeline = function () {
 	const pipeline = [
 		{$match}
 	];
+	const fields = new Set();
+
 	Object.keys(triggersMap).forEach(dbName => {
 		Object.keys(triggersMap[dbName]).forEach(collName => {
 			const operations = new Set();
-			const watchKeys = [];
 			triggersMap[dbName][collName].forEach(trigger => {
 				operations.add(trigger.trigger_type);
-				[...trigger.trigger_fields_set].forEach(field => watchKeys.push("updateDescription.updatedFields." + field));
+
+				[...trigger.trigger_fields_set].forEach(field => fields.add("updateDescription.updatedFields." + field));
+
 			});
-			if(watchKeys.length === 0){
-				return;
-			}
-			const watchKeysOr = watchKeys.map(key => ({[key]: {$exists: true}}))
-			//console.log(watchKeysOr)
-			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]},$or:watchKeysOr});
+			$or.push({"ns.db": dbName, "ns.coll": collName, operationType: {$in: [...operations]}});
 		});
 	});
 
@@ -151,11 +149,15 @@ const _buildPipeline = function () {
 	pipeline.push({
 		$project: project
 	});
+	if (fields.size > 0) {
+		const fieldsMatch = [...fields].map(field => ({[field]: {$exists: true}}));
+		pipeline.push({$match: {$or: fieldsMatch}});
+	}
 	return pipeline;
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
-	console.log(updateDescription,"updateDescription");
+	//console.log(updateDescription, "updateDescription");
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}

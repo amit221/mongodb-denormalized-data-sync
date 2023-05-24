@@ -64,7 +64,7 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 		connectionOptions = JSON.parse(connectionOptions);
 	}
 	connectionOptions.useNewUrlParser = true;
-	connectionOptions.poolSize = 5;
+	connectionOptions.maxPoolSize  = 5;
 	client = await MongoClient.connect(connectionString, connectionOptions);
 	db = client.db(process.env.MONGODB_DATA_SYNC_DB);
 	setCollections();
