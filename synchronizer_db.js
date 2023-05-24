@@ -49,7 +49,7 @@ const createIndexes = () => {
 			dependent_collection: 1,
 			dependent_key: 1,
 		}, {unique: true, name: "db_ref_depc_depk"}),
-		
+
 		triggersCollection.createIndex({
 			db_name: 1,
 			dependent_collection: 1,
@@ -64,6 +64,7 @@ exports.connect = async function (connectionString, connectionOptions = {}) {
 		connectionOptions = JSON.parse(connectionOptions);
 	}
 	connectionOptions.useNewUrlParser = true;
+	connectionOptions.poolSize = 5;
 	client = await MongoClient.connect(connectionString, connectionOptions);
 	db = client.db(process.env.MONGODB_DATA_SYNC_DB);
 	setCollections();
@@ -113,7 +114,7 @@ exports.addDependency = async function (payload) {
 		}
 		throw e;
 	}
-	
+
 };
 exports.getDependencies = function () {
 	return dependenciesCollection.find().toArray();
@@ -171,9 +172,9 @@ exports.closeConnection = async function () {
 };
 
 exports.dropDb = function () {
-	
+
 	const dbData = client.db(process.env.MONGODB_DATA_SYNC_DB + "_data");
-	
+
 	return Promise.all([
 		db.dropDatabase(),
 		dbData.dropDatabase()

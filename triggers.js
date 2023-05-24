@@ -155,6 +155,7 @@ const _buildPipeline = function () {
 };
 
 const _fireTriggers = function ({ns, documentKey, operationType, updateDescription}) {
+	console.log(updateDescription,"updateDescription");
 	if (!triggersMap[ns.db] || !triggersMap[ns.db][ns.coll]) {
 		return;
 	}
